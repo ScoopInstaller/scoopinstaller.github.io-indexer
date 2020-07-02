@@ -1,0 +1,38 @@
+name: Deploy Function app
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  OUTPUT_PATH: ${{ github.workspace }}/output
+  AZURE_FUNCTIONAPP_NAME: ScoopSearch.Functions
+  AZURE_FUNCTIONAPP_PATH: ${{ github.workspace }}/src/
+  # AZURE_FUNCTIONAPP_PUBLISH_PROFILE: '' # Secret in the repository
+  DOTNET_VERSION: '3.1.100'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup .NET Core ${{ env.DOTNET_VERSION }}
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install dependencies
+      run: dotnet restore ${{ env.AZURE_FUNCTIONAPP_PATH }}
+
+    - name: Publish
+      run: dotnet publish ${{ env.AZURE_FUNCTIONAPP_PATH }} --configuration Release --no-restore --output ${{ env.OUTPUT_PATH }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: function-app
+        path: ${{ env.OUTPUT_PATH }}
