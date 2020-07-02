@@ -1,0 +1,20 @@
+{
+    "version": "2.0",
+    "logging": {
+        "fileLoggingMode": "debugOnly",
+        "logLevel": {
+            "default": "Warning",
+            "Host.Results": "Error",
+            "Function": "Trace",
+            "Host.Aggregator": "Warning"
+        }
+    },
+    "functionTimeout": "00:01:00",
+    "extensions": {
+        "queues": {
+            "maxPollingInterval": "00:00:15",
+            "maxDequeueCount": 5,
+            "batchSize": 2
+        }
+    }
+}
