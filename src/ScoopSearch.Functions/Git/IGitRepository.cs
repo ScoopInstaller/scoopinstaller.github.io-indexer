@@ -9,6 +9,8 @@ namespace ScoopSearch.Functions.Git
     {
         string GetRepository(Uri uri, CancellationToken cancellationToken);
 
+        void DeleteRepository(string repository);
+
         IDictionary<string, List<Commit>> GetCommitsCache(Repository repository, Predicate<string> filter);
     }
 }

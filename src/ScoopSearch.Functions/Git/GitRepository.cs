@@ -25,9 +25,9 @@ namespace ScoopSearch.Functions.Git
 
         public string GetRepository(Uri uri, CancellationToken cancellationToken)
         {
+            var repositoryRoot = Path.Combine(RepositoriesRoot, uri.AbsolutePath.Substring(1)); // Remove leading slash
             try
             {
-                var repositoryRoot = Path.Combine(RepositoriesRoot, uri.AbsolutePath.Substring(1)); // Remove leading slash
                 if (Directory.Exists(repositoryRoot))
                 {
                     try
@@ -48,11 +48,27 @@ namespace ScoopSearch.Functions.Git
 
                 return repositoryRoot;
             }
-            catch (LibGit2SharpException ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, $"Unable to clone/update repository {uri}. Error is: {ex.Message}");
+                _logger.LogWarning(ex, $"Unable to clone/update repository {uri}. Error is: {ex.Message}");
+                DeleteRepository(repositoryRoot);
                 return null;
             }
+        }
+
+        public void DeleteRepository(string repository)
+        {
+            var directory = new DirectoryInfo(repository)
+            {
+                Attributes = FileAttributes.Normal
+            };
+
+            foreach (var info in directory.GetFileSystemInfos("*", SearchOption.AllDirectories))
+            {
+                info.Attributes = FileAttributes.Normal;
+            }
+
+            directory.Delete(true);
         }
 
         public IDictionary<string, List<Commit>> GetCommitsCache(Repository repository, Predicate<string> filter)
@@ -90,7 +106,7 @@ namespace ScoopSearch.Functions.Git
         {
             get
             {
-                var root = Environment.GetEnvironmentVariable("HOME") ?? _executionContextOptions.AppDirectory;
+                var root = Environment.GetEnvironmentVariable("TEMP") ?? _executionContextOptions.AppDirectory;
                 return Path.Combine(root, "repositories");
             }
         }
@@ -132,6 +148,14 @@ namespace ScoopSearch.Functions.Git
             var cloneOptions = CreateOptions<CloneOptions>(cancellationToken);
             cloneOptions.RecurseSubmodules = false;
             Repository.Clone(uri.AbsoluteUri, repositoryRoot, cloneOptions);
+
+            using (var repository = new Repository(repositoryRoot))
+            {
+                if (!repository.Branches.Any())
+                {
+                    throw new InvalidOperationException($"No remote branch found for repository {repositoryRoot}");
+                }
+            }
         }
 
         private T CreateOptions<T>(CancellationToken cancellationToken)

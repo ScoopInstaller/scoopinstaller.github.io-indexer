@@ -28,6 +28,7 @@ namespace ScoopSearch.Functions.Manifest
         public IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri url, CancellationToken cancellationToken)
         {
             _logger.LogDebug($"Generating manifests list for '{url}'");
+            var results = new List<ManifestInfo>();
 
             var repositoryRoot = _gitRepository.GetRepository(url, cancellationToken);
             if (repositoryRoot != null)
@@ -48,7 +49,6 @@ namespace ScoopSearch.Functions.Manifest
                     {
                         var commit = commitCache[entry.Path].First();
 
-
                         var manifestMetadata = new ManifestMetadata(
                             repositoryRemote,
                             branchName,
@@ -62,11 +62,15 @@ namespace ScoopSearch.Functions.Manifest
                         var manifest = CreateManifest(blob.GetContentText(), manifestMetadata);
                         if (manifest != null)
                         {
-                            yield return manifest;
+                            results.Add(manifest);
                         }
                     }
                 }
+
+                _gitRepository.DeleteRepository(repositoryRoot);
             }
+
+            return results;
         }
 
         private bool IsManifestFile(string filePath, string manifestsSubPath)
