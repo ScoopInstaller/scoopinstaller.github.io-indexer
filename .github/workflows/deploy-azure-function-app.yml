@@ -10,6 +10,7 @@ env:
 
 jobs:
   build:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
     runs-on: windows-latest
 
     steps:
@@ -34,9 +35,9 @@ jobs:
         path: ${{ env.OUTPUT_PATH }}
 
   deploy:
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[skip ci]') == false
     runs-on: windows-latest
     needs: [ build ]
-    if: github.ref == 'refs/heads/main'
 
     steps:
     - name: Download artifact
