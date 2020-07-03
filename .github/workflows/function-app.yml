@@ -1,4 +1,4 @@
-name: Deploy Function app
+name: Function app workflow
 on: push
 
 env:
