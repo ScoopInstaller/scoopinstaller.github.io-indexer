@@ -36,3 +36,21 @@ jobs:
       with:
         name: function-app
         path: ${{ env.OUTPUT_PATH }}
+
+  deploy:
+    runs-on: windows-latest
+    needs: [ build ]
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+          name: function-app
+          path: ${{ env.OUTPUT_PATH }}
+
+    - name: 'Publish Azure Functions'
+      uses: Azure/functions-action@v1
+      with:
+        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+        package: '${{ env.OUTPUT_PATH }}'
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
