@@ -9,12 +9,12 @@
             "Host.Aggregator": "Warning"
         }
     },
-    "functionTimeout": "00:01:00",
+    "functionTimeout": "00:05:00",
     "extensions": {
         "queues": {
             "maxPollingInterval": "00:00:15",
-            "maxDequeueCount": 5,
-            "batchSize": 2
+            "maxDequeueCount": 2,
+            "batchSize": 1
         }
     }
 }
