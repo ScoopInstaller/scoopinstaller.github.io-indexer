@@ -119,7 +119,7 @@ namespace ScoopSearch.Functions.Indexer
                     CorsOptions = new CorsOptions(new[]
                     {
                         "http://localhost:3000",
-                        "https://scoopsearch.z22.web.core.windows.net"
+                        "https://scoopsearch.github.io"
                     }, null)
                 };
 

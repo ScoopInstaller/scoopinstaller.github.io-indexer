@@ -10,7 +10,7 @@
             },
             "responseOverrides": {
                 "response.statusCode": "302",
-                "response.headers.Location": "https://scoopsearch.z22.web.core.windows.net/"
+                "response.headers.Location": "https://scoopsearch.github.io/"
             }
         }
     }
