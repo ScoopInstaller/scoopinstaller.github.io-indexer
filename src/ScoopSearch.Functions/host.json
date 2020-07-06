@@ -4,9 +4,9 @@
         "fileLoggingMode": "debugOnly",
         "logLevel": {
             "default": "Warning",
-            "Host.Results": "Error",
-            "Function": "Trace",
-            "Host.Aggregator": "Warning"
+            "Host.Results": "Information", // Required to get proper monitor on Azure
+            "Host.Aggregator": "Information", // Required to get proper monitor on Azure
+            "Function": "Information"
         }
     },
     "functionTimeout": "00:05:00",
