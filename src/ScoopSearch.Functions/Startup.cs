@@ -8,6 +8,7 @@ using Castle.DynamicProxy;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Extensions.Options;
+using Polly;
 using ScoopSearch.Functions.Configuration;
 using ScoopSearch.Functions.Git;
 using ScoopSearch.Functions.Indexer;
@@ -47,20 +48,23 @@ namespace ScoopSearch.Functions
 
             // Services
             builder.Services.AddHttpClient(Constants.GitHubHttpClientName, (serviceProvider, client) =>
-            {
-                // GitHub requires a specifc Accept header to search repositories by topic
-                // https://developer.github.com/v3/search/#search-repositories
-                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.mercy-preview+json");
+                {
+                    // GitHub requires a specific Accept header to search repositories by topic
+                    // https://developer.github.com/v3/search/#search-repositories
+                    client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.mercy-preview+json");
 
-                // Github requires a user-agent
-                var assemblyName = GetType().Assembly.GetName();
-                client.DefaultRequestHeaders.UserAgent.Add(
-                    new ProductInfoHeaderValue(assemblyName.Name, assemblyName.Version!.ToString()));
+                    // Github requires a user-agent
+                    var assemblyName = GetType().Assembly.GetName();
+                    client.DefaultRequestHeaders.UserAgent.Add(
+                        new ProductInfoHeaderValue(assemblyName.Name, assemblyName.Version!.ToString()));
 
-                // Authentication to avoid API rate limit
-                var configuration = serviceProvider.GetService<IConfiguration>();
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", configuration["GitHubToken"]);
-            });
+                    // Authentication to avoid API rate limitation
+                    var configuration = serviceProvider.GetService<IConfiguration>();
+                    client.DefaultRequestHeaders.Authorization =
+                        new AuthenticationHeaderValue("Token", configuration["GitHubToken"]);
+                })
+                .AddTransientHttpErrorPolicy(builder =>
+                    builder.WaitAndRetryAsync(4, attempt => TimeSpan.FromSeconds(Math.Min(1, (attempt - 1) * 5))));
             builder.Services.AddSingleton<IGitRepository, GitRepository>();
             builder.Services.AddSingleton<IManifestCrawler, ManifestCrawler>();
             builder.Services.AddSingleton<IIndexer, AzureSearchIndexer>();

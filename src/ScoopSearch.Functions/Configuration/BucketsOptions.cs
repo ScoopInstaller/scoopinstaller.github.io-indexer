@@ -9,7 +9,7 @@ namespace ScoopSearch.Functions.Configuration
 
         public Uri OfficialBucketsListUrl { get; set; }
 
-        public List<string> GithubBucketsSearchQueries { get; set; }
+        public List<Uri> GithubBucketsSearchQueries { get; set; }
 
         public HashSet<Uri> IgnoredBuckets { get; set; }
 

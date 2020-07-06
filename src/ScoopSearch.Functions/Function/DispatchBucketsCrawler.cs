@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -16,6 +17,8 @@ namespace ScoopSearch.Functions.Function
 {
     public class DispatchBucketsCrawler
     {
+        private const int ResultsPerPage = 100;
+
         private readonly HttpClient _githubHttpClient;
         private readonly IIndexer _indexer;
         private readonly BucketsOptions _bucketOptions;
@@ -37,70 +40,83 @@ namespace ScoopSearch.Functions.Function
             ILogger logger,
             CancellationToken cancellationToken)
         {
-            var officialBuckets = (await RetrieveOfficialBucketsAsync(cancellationToken)).ToHashSet();
-            logger.LogDebug($"Found {officialBuckets.Count} official buckets");
+            var officialBucketsTask = RetrieveOfficialBucketsAsync(cancellationToken);
+            var githubBucketsTask = SearchForBucketsOnGitHubAsync(cancellationToken);
 
-            var githubFoundBuckets = (await SearchAllBucketsOnGitHub(cancellationToken));
-            logger.LogDebug($"Found {githubFoundBuckets.Count} buckets on GitHub");
+            var officialBuckets = await officialBucketsTask;
+            var githubBuckets = await githubBucketsTask;
+            logger.LogInformation($"Found {officialBuckets.Count} official buckets.");
+            logger.LogInformation($"Found {githubBuckets.Count} buckets on GitHub.");
 
-            var allBuckets = githubFoundBuckets.Keys
+            var allBuckets = githubBuckets.Keys
                 .Concat(officialBuckets)
                 .Concat(_bucketOptions.ManualBuckets)
                 .Except(_bucketOptions.IgnoredBuckets)
                 .ToHashSet();
 
-            await DeleteRemovedBucketsFromIndexAsync(allBuckets, logger, cancellationToken);
+            await CleanIndexFromNonExistentBucketsAsync(allBuckets, logger, cancellationToken);
 
-            var bucketsToQueue = allBuckets.Select(x =>
+            var bucketsToIndex = allBuckets.Select(x =>
             {
-                var stars = githubFoundBuckets.TryGetValue(x, out var value) ? value : -1;
+                var stars = githubBuckets.TryGetValue(x, out var value) ? value : -1;
                 var official = officialBuckets.Contains(x);
                 return new QueueItem(x, stars, official);
-            });
+            }).ToArray();
 
-            await QueueBucketsForCrawlingAsync(queue, bucketsToQueue, logger, cancellationToken);
+            await QueueBucketsForIndexingAsync(queue, bucketsToIndex, logger, cancellationToken);
         }
 
-        private async Task<IEnumerable<Uri>> RetrieveOfficialBucketsAsync(CancellationToken cancellationToken)
+        private async Task<HashSet<Uri>> RetrieveOfficialBucketsAsync(CancellationToken cancellationToken)
         {
-            var contentJson = await GetStringAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken);
+            var contentJson = await GetAsStringAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken);
             var officialBuckets = JsonConvert.DeserializeObject<Dictionary<string, string>>(contentJson).Values;
 
-            return officialBuckets.Select(x => new Uri(x));
+            return officialBuckets.Select(x => new Uri(x)).ToHashSet();
         }
 
-        private async Task<IDictionary<Uri, int>> SearchAllBucketsOnGitHub(CancellationToken cancellationToken)
+        private async Task<IDictionary<Uri, int>> SearchForBucketsOnGitHubAsync(CancellationToken cancellationToken)
         {
             // TODO : Use GitHub API v4
-            Dictionary<Uri, int> buckets = new Dictionary<Uri, int>();
-            var resultJsonTemplate = new {total_count = 0, items = new[] {new {html_url = "", stargazers_count = 0}}};
-
-            foreach (var gitHubSearchQuery in _bucketOptions.GithubBucketsSearchQueries
-                .TakeWhile(x => !cancellationToken.IsCancellationRequested))
+            ConcurrentDictionary<Uri, int> buckets = new ConcurrentDictionary<Uri, int>();
+            List<Task> tasks = new List<Task>();
+            foreach (var gitHubSearchQuery in _bucketOptions.GithubBucketsSearchQueries)
             {
-                int page = 1;
-                while (true)
+                tasks.Add(Task.Run(async () =>
                 {
-                    var searchUrl = new Uri($"{gitHubSearchQuery}&per_page=100&page={page++}");
-                    var contentJson = await GetStringAsync(searchUrl, cancellationToken);
-                    var result = JsonConvert.DeserializeAnonymousType(contentJson, resultJsonTemplate);
+                    // First query to retrieve total_count and first results
+                    var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page=1");
+                    var firstResults = await GetGitHubSearchResultsAsync(searchUri, cancellationToken);
 
-                    foreach (var item in result.items)
+                    // Using TotalCount, parallelize the remaining queries for all the remaining pages of results
+                    var totalPages = (int)Math.Ceiling(firstResults.TotalCount / (double)ResultsPerPage);
+                    var remainingResultsTasks = Enumerable.Range(2, totalPages).Select(page =>
                     {
-                        buckets[new Uri(item.html_url)] = item.stargazers_count;
-                    }
+                        var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}");
+                        return GetGitHubSearchResultsAsync(searchUri, cancellationToken);
+                    }).ToArray();
 
-                    if (result.items.Length == 0)
+                    await Task.WhenAll(remainingResultsTasks);
+
+                    var allResultsItems = firstResults.Items.Concat(remainingResultsTasks.SelectMany(x => x.Result.Items));
+                    foreach (var item in allResultsItems)
                     {
-                        break;
+                        buckets[item.HtmlUri] = item.Stars;
                     }
-                }
+                }, cancellationToken));
             }
 
+            await Task.WhenAll(tasks);
             return buckets;
         }
 
-        private async Task<string> GetStringAsync(Uri uri, CancellationToken cancellationToken)
+        private Task<GitHubSearchResults> GetGitHubSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
+        {
+            return GetAsStringAsync(searchUri, cancellationToken)
+                .ContinueWith(task
+                    => JsonConvert.DeserializeObject<GitHubSearchResults>(task.Result), cancellationToken);
+        }
+
+        private async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
             using (var response = await _githubHttpClient.SendAsync(request, cancellationToken))
@@ -111,25 +127,40 @@ namespace ScoopSearch.Functions.Function
             }
         }
 
-        private async Task QueueBucketsForCrawlingAsync(IAsyncCollector<QueueItem> queue, IEnumerable<QueueItem> buckets, ILogger logger, CancellationToken cancellationToken)
+        private Task QueueBucketsForIndexingAsync(IAsyncCollector<QueueItem> queue, QueueItem[] items, ILogger logger, CancellationToken cancellationToken)
         {
-            foreach (var bucket in buckets.TakeWhile(x => !cancellationToken.IsCancellationRequested))
+            logger.LogInformation($"Adding {items.Length} buckets for indexing.");
+            List<Task> tasks = new List<Task>();
+            foreach (var item in items)
             {
-                logger.LogInformation($"Adding bucket '{bucket.Bucket}' (stars: {bucket.Stars}, official: {bucket.Official}) to queue");
-                await queue.AddAsync(bucket, cancellationToken);
+                tasks.Add(Task.Run(async () =>
+                {
+                    logger.LogDebug($"Adding bucket '{item.Bucket}' (stars: {item.Stars}, official: {item.Official}) to queue.");
+                    await queue.AddAsync(item, cancellationToken);
+                }, cancellationToken));
             }
+
+            return Task.WhenAll(tasks);
         }
 
-        private async Task DeleteRemovedBucketsFromIndexAsync(IEnumerable<Uri> buckets, ILogger logger, CancellationToken cancellationToken)
+        private async Task CleanIndexFromNonExistentBucketsAsync(IEnumerable<Uri> buckets, ILogger logger, CancellationToken cancellationToken)
         {
             var allBucketsFromIndex = await _indexer.GetBucketsAsync(cancellationToken);
             var deletedBuckets = allBucketsFromIndex.Except(buckets).ToArray();
+            logger.LogInformation($"{deletedBuckets.Length} buckets to remove from the index.");
+
+            List<Task> tasks = new List<Task>();
             foreach (var deletedBucket in deletedBuckets.TakeWhile(x => !cancellationToken.IsCancellationRequested))
             {
-                var manifests = (await _indexer.GetExistingManifestsAsync(deletedBucket, cancellationToken)).ToArray();
-                logger.LogInformation($"Deleting {manifests.Length} manifests from bucket {deletedBucket}.");
-                await _indexer.DeleteManifestsAsync(manifests, cancellationToken);
+                tasks.Add(Task.Run(async () =>
+                {
+                    var manifests = (await _indexer.GetExistingManifestsAsync(deletedBucket, cancellationToken)).ToArray();
+                    logger.LogDebug($"Deleting {manifests.Length} manifests from bucket {deletedBucket}.");
+                    await _indexer.DeleteManifestsAsync(manifests, cancellationToken);
+                }, cancellationToken));
             }
+
+            await Task.WhenAll(tasks);
         }
     }
 }
