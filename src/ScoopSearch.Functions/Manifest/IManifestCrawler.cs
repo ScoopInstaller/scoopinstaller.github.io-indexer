@@ -7,6 +7,6 @@ namespace ScoopSearch.Functions.Manifest
 {
     public interface IManifestCrawler
     {
-        IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri url, CancellationToken cancellationToken);
+        IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken);
     }
 }

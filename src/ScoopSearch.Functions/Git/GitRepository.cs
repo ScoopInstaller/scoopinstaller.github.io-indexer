@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using LibGit2Sharp;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Extensions.Logging;
@@ -23,7 +24,7 @@ namespace ScoopSearch.Functions.Git
             _logger = logger;
         }
 
-        public string GetRepository(Uri uri, CancellationToken cancellationToken)
+        public string DownloadRepository(Uri uri, CancellationToken cancellationToken)
         {
             var repositoryRoot = Path.Combine(RepositoriesRoot, uri.AbsolutePath.Substring(1)); // Remove leading slash
             try
@@ -36,8 +37,8 @@ namespace ScoopSearch.Functions.Git
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, $"Unable to pull repository {repositoryRoot}");
-                        Directory.Delete(repositoryRoot, true);
+                        _logger.LogWarning(ex, $"Unable to pull repository '{uri}' to '{repositoryRoot}'.");
+                        DeleteRepository(repositoryRoot);
                         CloneRepository(uri, repositoryRoot, cancellationToken);
                     }
                 }
@@ -50,7 +51,7 @@ namespace ScoopSearch.Functions.Git
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to clone/update repository {uri}. Error is: {ex.Message}");
+                _logger.LogWarning(ex, $"Unable to clone repository '{uri}' to '{repositoryRoot}'.");
                 DeleteRepository(repositoryRoot);
                 return null;
             }
@@ -58,48 +59,62 @@ namespace ScoopSearch.Functions.Git
 
         public void DeleteRepository(string repository)
         {
-            var directory = new DirectoryInfo(repository)
+            var directory = new DirectoryInfo(repository);
+            if (directory.Exists)
             {
-                Attributes = FileAttributes.Normal
-            };
+                directory.Attributes = FileAttributes.Normal;
 
-            foreach (var info in directory.GetFileSystemInfos("*", SearchOption.AllDirectories))
-            {
-                info.Attributes = FileAttributes.Normal;
+                foreach (var info in directory.GetFileSystemInfos("*", SearchOption.AllDirectories))
+                {
+                    info.Attributes = FileAttributes.Normal;
+                }
+
+                directory.Delete(true);
             }
-
-            directory.Delete(true);
         }
 
-        public IDictionary<string, List<Commit>> GetCommitsCache(Repository repository, Predicate<string> filter)
+        public IDictionary<string, Commit[]> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken)
         {
             var commitsCache = new Dictionary<string, List<Commit>>();
-            foreach (var commit in repository.Head.Commits)
-            {
-                IEnumerable<string> filesInCommit = null;
-                if (commit.Parents.Any())
+            Parallel.ForEach(repository.Head.Commits,
+                new ParallelOptions { CancellationToken = cancellationToken },
+                commit =>
                 {
-                    var treeDiff = repository.Diff.Compare<TreeChanges>(commit.Parents.First().Tree, commit.Tree);
-                    filesInCommit = treeDiff.Select(x => x.Path);
-                }
-                else
-                {
-                    var trees = new[] { commit.Tree}.Concat(commit.Tree.Select(x => x.Target).OfType<Tree>());
-                    filesInCommit = trees.SelectMany(x => x.Where(y => y.Mode != Mode.Directory).Select(y => y.Path));
-                }
-
-                foreach (var filePath in filesInCommit.Where(x => filter(x)))
-                {
-                    if (!commitsCache.ContainsKey(filePath))
+                    IEnumerable<string> filesInCommit = null;
+                    if (commit.Parents.Any())
                     {
-                        commitsCache.Add(filePath, new List<Commit>());
+                        var treeDiff = repository.Diff.Compare<TreeChanges>(commit.Parents.First().Tree, commit.Tree);
+                        filesInCommit = treeDiff.Select(x => x.Path);
+                    }
+                    else
+                    {
+                        var trees = new[] {commit.Tree}.Concat(commit.Tree.Select(x => x.Target).OfType<Tree>());
+                        filesInCommit = trees.SelectMany(x => x.Where(y => y.Mode != Mode.Directory).Select(y => y.Path));
                     }
 
-                    commitsCache[filePath].Add(commit);
-                }
-            }
+                    foreach (var filePath in filesInCommit.Where(x => filter(x)))
+                    {
+                        if (!commitsCache.ContainsKey(filePath))
+                        {
+                            lock (commitsCache)
+                            {
+                                if (!commitsCache.ContainsKey(filePath))
+                                {
+                                    commitsCache.Add(filePath, new List<Commit>());
+                                }
+                            }
+                        }
 
-            return commitsCache;
+                        lock (commitsCache[filePath])
+                        {
+                            commitsCache[filePath].Add(commit);
+                        }
+                    }
+                });
+
+            return commitsCache.ToDictionary(
+                k => k.Key,
+                v => v.Value.ToArray());
         }
 
         private string RepositoriesRoot

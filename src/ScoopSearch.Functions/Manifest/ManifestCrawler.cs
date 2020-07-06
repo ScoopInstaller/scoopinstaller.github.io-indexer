@@ -25,12 +25,11 @@ namespace ScoopSearch.Functions.Manifest
             _logger = logger;
         }
 
-        public IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri url, CancellationToken cancellationToken)
+        public IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken)
         {
-            _logger.LogDebug($"Generating manifests list for '{url}'");
             var results = new List<ManifestInfo>();
 
-            var repositoryRoot = _gitRepository.GetRepository(url, cancellationToken);
+            var repositoryRoot = _gitRepository.DownloadRepository(bucketUri, cancellationToken);
             if (repositoryRoot != null)
             {
                 using (var repository = new Repository(repositoryRoot))
@@ -42,8 +41,8 @@ namespace ScoopSearch.Functions.Manifest
                         ? "bucket/"
                         : string.Empty;
                     var manifests = repository.Index.Where(x => IsManifestFile(x.Path, manifestsSubPath));
-                    var commitCache = _gitRepository.GetCommitsCache(repository,
-                        filePath => IsManifestFile(filePath, manifestsSubPath));
+                    bool IsManifestPredicate(string filePath) => IsManifestFile(filePath, manifestsSubPath);
+                    var commitCache = _gitRepository.GetCommitsCache(repository, IsManifestPredicate, cancellationToken);
 
                     foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
                     {
@@ -94,7 +93,7 @@ namespace ScoopSearch.Functions.Manifest
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Unable to read manifest in {metadata.FilePath} ({metadata.Repository}). Error is: {ex.Message}");
+                _logger.LogInformation(ex, $"Unable to parse manifest {metadata.FilePath} in {metadata.Repository}.");
             }
 
             return null;

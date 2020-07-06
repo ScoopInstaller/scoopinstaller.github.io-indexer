@@ -27,6 +27,7 @@ namespace ScoopSearch.Functions.Function
             CancellationToken cancellationToken)
         {
             // Clone/Update bucket repository and retrieve manifests
+            logger.LogInformation($"Generating manifests list for '{queueItem.Bucket}'");
             var manifestsFromBucket = _manifestCrawler
                 .GetManifestsFromRepository(queueItem.Bucket, cancellationToken)
                 .ToArray();
