@@ -20,7 +20,7 @@ namespace ScoopSearch.Functions.Interceptor
 
         protected override void CompletedInvocation(IInvocation invocation, Stopwatch stopwatch)
         {
-            _logger.LogDebug($"Executed '{invocation.Method.Name}' in {stopwatch.Elapsed:g}");
+            _logger.LogDebug($"Executed '{invocation.Method.Name}({string.Join(", ", invocation.Arguments)})' in {stopwatch.Elapsed:g}");
         }
     }
 }
