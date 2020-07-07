@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using LibGit2Sharp;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Extensions.Logging;
@@ -76,45 +75,32 @@ namespace ScoopSearch.Functions.Git
         public IDictionary<string, Commit[]> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken)
         {
             var commitsCache = new Dictionary<string, List<Commit>>();
-            Parallel.ForEach(repository.Head.Commits,
-                new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = 4},
-                commit =>
+            foreach (var commit in repository.Head.Commits.TakeWhile(x => !cancellationToken.IsCancellationRequested))
+            {
+                IEnumerable<string> filesInCommit = null;
+                if (commit.Parents.Any())
                 {
-                    IEnumerable<string> filesInCommit = null;
-                    if (commit.Parents.Any())
+                    var treeDiff = repository.Diff.Compare<TreeChanges>(commit.Parents.First().Tree, commit.Tree);
+                    filesInCommit = treeDiff.Select(x => x.Path);
+                }
+                else
+                {
+                    var trees = new[] { commit.Tree}.Concat(commit.Tree.Select(x => x.Target).OfType<Tree>());
+                    filesInCommit = trees.SelectMany(x => x.Where(y => y.Mode != Mode.Directory).Select(y => y.Path));
+                }
+
+                foreach (var filePath in filesInCommit.Where(x => filter(x)))
+                {
+                    if (!commitsCache.ContainsKey(filePath))
                     {
-                        var treeDiff = repository.Diff.Compare<TreeChanges>(commit.Parents.First().Tree, commit.Tree);
-                        filesInCommit = treeDiff.Select(x => x.Path);
-                    }
-                    else
-                    {
-                        var trees = new[] {commit.Tree}.Concat(commit.Tree.Select(x => x.Target).OfType<Tree>());
-                        filesInCommit = trees.SelectMany(x => x.Where(y => y.Mode != Mode.Directory).Select(y => y.Path));
+                        commitsCache.Add(filePath, new List<Commit>());
                     }
 
-                    foreach (var filePath in filesInCommit.Where(x => filter(x)))
-                    {
-                        if (!commitsCache.ContainsKey(filePath))
-                        {
-                            lock (commitsCache)
-                            {
-                                if (!commitsCache.ContainsKey(filePath))
-                                {
-                                    commitsCache.Add(filePath, new List<Commit>());
-                                }
-                            }
-                        }
+                    commitsCache[filePath].Add(commit);
+                }
+            }
 
-                        lock (commitsCache[filePath])
-                        {
-                            commitsCache[filePath].Add(commit);
-                        }
-                    }
-                });
-
-            return commitsCache.ToDictionary(
-                k => k.Key,
-                v => v.Value.ToArray());
+            return commitsCache.ToDictionary(k => k.Key, v => v.Value.ToArray());
         }
 
         private string RepositoriesRoot
