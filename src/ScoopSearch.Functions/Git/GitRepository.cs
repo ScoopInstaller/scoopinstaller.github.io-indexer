@@ -77,7 +77,7 @@ namespace ScoopSearch.Functions.Git
         {
             var commitsCache = new Dictionary<string, List<Commit>>();
             Parallel.ForEach(repository.Head.Commits,
-                new ParallelOptions { CancellationToken = cancellationToken },
+                new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = 4},
                 commit =>
                 {
                     IEnumerable<string> filesInCommit = null;
