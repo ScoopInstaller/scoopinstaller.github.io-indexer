@@ -16,10 +16,10 @@ namespace ScoopSearch.Functions.Indexer
     {
         private readonly ISearchIndexClient _index;
 
-        public AzureSearchIndexer(IOptions<AzureSearchOptions> options)
+        public AzureSearchIndexer(AzureSearchIndex azureSearchIndex, IOptions<AzureSearchOptions> options)
         {
             var client = new SearchServiceClient(options.Value.ServiceName, new SearchCredentials(options.Value.AdminApiKey));
-            CreateIndexIfRequired(client, options.Value.IndexName);
+            azureSearchIndex.CreateIndexIfRequired(client, options.Value.IndexName);
             _index = client.Indexes.GetClient(options.Value.IndexName);
         }
 
@@ -35,7 +35,7 @@ namespace ScoopSearch.Functions.Indexer
                     ManifestMetadata.ShaField,
                 },
                 Filter = $"{ManifestMetadata.RepositoryField} eq '{repository.AbsoluteUri}'",
-                OrderBy = new[] { "Id" },
+                OrderBy = new[] { ManifestInfo.IdField },
                 Top = int.MaxValue // Retrieve pages of 1000 items
             };
 
@@ -81,50 +81,6 @@ namespace ScoopSearch.Functions.Indexer
         {
             var batch = IndexBatch.MergeOrUpload(manifests);
             await _index.Documents.IndexAsync(batch, null, token);
-        }
-
-        private void CreateIndexIfRequired(SearchServiceClient client, string indexName)
-        {
-            if (!client.Indexes.Exists(indexName))
-            {
-                const string Profile = "customProfile";
-                var definition = new Index
-                {
-                    Name = indexName,
-                    Fields = FieldBuilder.BuildForType<ManifestInfo>(),
-                    ScoringProfiles = new[]
-                    {
-                        new ScoringProfile(
-                            Profile,
-                            new TextWeights(
-                                new Dictionary<string, double>
-                                {
-                                    { ManifestInfo.NameField, 70}, {ManifestInfo.DescriptionField, 30}
-                                }),
-                            new List<ScoringFunction>
-                            {
-                                new MagnitudeScoringFunction(
-                                    ManifestMetadata.OfficialRepositoryNumberField,
-                                    2,
-                                    0,
-                                    1),
-                                new MagnitudeScoringFunction(
-                                    ManifestMetadata.RepositoryStarsField,
-                                    2,
-                                    1,
-                                    500)
-                            })
-                    },
-                    DefaultScoringProfile = Profile,
-                    CorsOptions = new CorsOptions(new[]
-                    {
-                        "http://localhost:3000",
-                        "https://scoopsearch.github.io"
-                    }, null)
-                };
-
-                client.Indexes.Create(definition);
-            }
         }
     }
 }

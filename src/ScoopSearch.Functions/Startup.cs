@@ -68,6 +68,7 @@ namespace ScoopSearch.Functions
             builder.Services.AddSingleton<IGitRepository, GitRepository>();
             builder.Services.AddSingleton<IManifestCrawler, ManifestCrawler>();
             builder.Services.AddSingleton<IIndexer, AzureSearchIndexer>();
+            builder.Services.AddSingleton<AzureSearchIndex>();
             builder.Services.AddSingleton<IKeyGenerator, KeyGenerator>();
 
             // Decorate some classes with interceptors

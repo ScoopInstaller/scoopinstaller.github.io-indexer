@@ -4,13 +4,15 @@ using Microsoft.Azure.Search;
 using Microsoft.Azure.Search.Models;
 using Newtonsoft.Json;
 using ScoopSearch.Functions.Data.JsonConverter;
+using ScoopSearch.Functions.Indexer;
 
 namespace ScoopSearch.Functions.Data
 {
     public class ManifestInfo
     {
         public const string IdField = nameof(Id);
-        public const string NameField = nameof(Name);
+        public const string NamePartialField = nameof(NamePartial);
+        public const string NameSuffixField = nameof(NameSuffix);
         public const string DescriptionField = nameof(Description);
 
         [JsonConstructor]
@@ -25,11 +27,24 @@ namespace ScoopSearch.Functions.Data
 
         [IsSearchable]
         [JsonProperty]
-        public string Name { get; private set; }
+        [Analyzer(AzureSearchIndex.StandardAnalyzer)]
+        public string NameStandard { get; private set; }
 
         [IsSearchable, IsSortable]
         [JsonProperty]
         public string NameNormalized { get; private set; }
+
+        [IsSearchable]
+        [SearchAnalyzer(AzureSearchIndex.StandardAnalyzer)]
+        [IndexAnalyzer(AzureSearchIndex.PrefixAnalyzer)]
+        [JsonProperty]
+        public string NamePartial { get; private set; }
+
+        [IsSearchable]
+        [SearchAnalyzer(AzureSearchIndex.ReverseAnalyzer)]
+        [IndexAnalyzer(AzureSearchIndex.SuffixAnalyzer)]
+        [JsonProperty]
+        public string NameSuffix { get; private set; }
 
         [IsSearchable]
         [Analyzer(AnalyzerName.AsString.EnLucene)]
@@ -37,7 +52,8 @@ namespace ScoopSearch.Functions.Data
         [JsonProperty]
         public string Description { get; private set; }
 
-        [IsFilterable, IsSortable, IsFacetable]
+        [IsSearchable, IsFilterable, IsSortable, IsFacetable]
+        [Analyzer(AzureSearchIndex.UrlAnalyzer)]
         [JsonProperty]
         public string Homepage { get; private set; }
 
@@ -47,6 +63,7 @@ namespace ScoopSearch.Functions.Data
         public string License { get; private set; }
 
         [IsSearchable, IsSortable, IsFilterable]
+        [Analyzer(AnalyzerName.AsString.Keyword)]
         [JsonProperty]
         public string Version { get; private set; }
 
@@ -59,8 +76,10 @@ namespace ScoopSearch.Functions.Data
             if (context.Context is (string key, ManifestMetadata manifestMetadata))
             {
                 Id = key;
-                Name = Path.GetFileNameWithoutExtension(manifestMetadata.FilePath);
-                NameNormalized = Name.ToLowerInvariant();
+                NameStandard = Path.GetFileNameWithoutExtension(manifestMetadata.FilePath);
+                NamePartial = NameStandard;
+                NameSuffix = NameStandard;
+                NameNormalized = NameStandard.ToLowerInvariant();
                 Metadata = manifestMetadata;
             }
         }

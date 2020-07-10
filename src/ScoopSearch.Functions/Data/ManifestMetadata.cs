@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.Azure.Search;
 using Newtonsoft.Json;
+using ScoopSearch.Functions.Indexer;
 
 namespace ScoopSearch.Functions.Data
 {
@@ -35,6 +36,7 @@ namespace ScoopSearch.Functions.Data
         }
 
         [IsSearchable, IsFilterable, IsSortable, IsFacetable]
+        [Analyzer(AzureSearchIndex.UrlAnalyzer)]
         [JsonProperty]
         public string Repository { get; private set; }
 
