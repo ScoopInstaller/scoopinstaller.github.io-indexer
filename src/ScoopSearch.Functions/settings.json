@@ -17,6 +17,7 @@
             "https://github.com/se35710/scoop-java",
             "https://github.com/kkzzhizhou/scoop-apps", // Aggregates several other buckets
             "https://github.com/mertd/shovel-data", // All manifests are in a single file
+            "https://github.com/h404bi/dorado", // Redirects to https://github.com/chawyehsu/dorado
         ],
 
         "ManualBuckets": [
