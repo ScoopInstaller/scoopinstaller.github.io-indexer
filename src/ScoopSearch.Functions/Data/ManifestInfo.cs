@@ -28,11 +28,11 @@ namespace ScoopSearch.Functions.Data
         [IsSearchable]
         [JsonProperty]
         [Analyzer(AzureSearchIndex.StandardAnalyzer)]
-        public string NameStandard { get; private set; }
+        public string Name { get; private set; }
 
         [IsSearchable, IsSortable]
         [JsonProperty]
-        public string NameNormalized { get; private set; }
+        public string NameSortable { get; private set; }
 
         [IsSearchable]
         [SearchAnalyzer(AzureSearchIndex.StandardAnalyzer)]
@@ -76,10 +76,10 @@ namespace ScoopSearch.Functions.Data
             if (context.Context is (string key, ManifestMetadata manifestMetadata))
             {
                 Id = key;
-                NameStandard = Path.GetFileNameWithoutExtension(manifestMetadata.FilePath);
-                NamePartial = NameStandard;
-                NameSuffix = NameStandard;
-                NameNormalized = NameStandard.ToLowerInvariant();
+                Name = Path.GetFileNameWithoutExtension(manifestMetadata.FilePath);
+                NamePartial = Name;
+                NameSuffix = Name;
+                NameSortable = Name.ToLowerInvariant();
                 Metadata = manifestMetadata;
             }
         }
