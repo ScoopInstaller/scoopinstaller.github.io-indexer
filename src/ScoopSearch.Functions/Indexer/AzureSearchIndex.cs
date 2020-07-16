@@ -94,12 +94,12 @@ namespace ScoopSearch.Functions.Indexer
                             {
                                 new MagnitudeScoringFunction(
                                     ManifestMetadata.OfficialRepositoryNumberField,
-                                    2,
+                                    5,
                                     0,
                                     1),
                                 new MagnitudeScoringFunction(
                                     ManifestMetadata.RepositoryStarsField,
-                                    2,
+                                    5,
                                     1,
                                     500)
                             })
