@@ -1,5 +1,10 @@
-name: Function app workflow
-on: push
+name: Azure functions workflow
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
 
 env:
   OUTPUT_PATH: ${{ github.workspace }}/output
@@ -10,7 +15,6 @@ env:
 
 jobs:
   build:
-    if: contains(github.event.head_commit.message, '[skip ci]') == false
     runs-on: windows-latest
 
     steps:
@@ -35,7 +39,7 @@ jobs:
         path: ${{ env.OUTPUT_PATH }}
 
   deploy:
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[skip ci]') == false
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: windows-latest
     needs: [ build ]
 
