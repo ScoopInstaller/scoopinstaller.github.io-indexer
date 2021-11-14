@@ -24,7 +24,13 @@
             "https://github.com/01walid/it-scoop", // Not a scoop bucket
             "https://github.com/go2sun/scoop-bucket-1", // Dup of https://github.com/dodorz/scoop
             "https://github.com/Psychopovt/open-scoop", // Fork of https://github.com/lptstr/lptstr-scoop
-            "https://github.com/puja255/scoop" // Clone of Main bucket
+            "https://github.com/puja255/scoop", // Clone of Main bucket
+            "https://github.com/Gladtbam/Scoop_Bucket", // Clones several scoop buckets
+            "https://github.com/HYHG/scoop", // Clone of lukesampson/scoop
+            "https://github.com/icemioi/scoop-bucket", // Clone of ScoopInstaller/Extras
+            "https://github.com/umestha/scoop", // Clone of lukesampson/scoop
+            "https://github.com/vinaynambiar/desktop-scoop2", // Clone of lukesampson/scoop
+            "https://github.com/renanmb/scoop" // Clone of lukesampson/scoop
         ],
 
         "ManualBuckets": [
