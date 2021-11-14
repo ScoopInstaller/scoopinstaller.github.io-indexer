@@ -7,7 +7,7 @@ namespace ScoopSearch.Functions.Manifest
 {
     internal class KeyGenerator : IKeyGenerator, IDisposable
     {
-        private readonly SHA1Managed _sha1 = new SHA1Managed();
+        private readonly SHA1 _sha1 = SHA1.Create();
 
         public string Generate(ManifestMetadata manifestMetadata)
         {

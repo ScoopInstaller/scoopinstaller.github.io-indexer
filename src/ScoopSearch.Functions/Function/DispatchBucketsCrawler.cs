@@ -18,6 +18,7 @@ namespace ScoopSearch.Functions.Function
     public class DispatchBucketsCrawler
     {
         private const int ResultsPerPage = 100;
+        private const int MaxDegreeOfParallelism = 8;
 
         private readonly HttpClient _githubHttpClient;
         private readonly IIndexer _indexer;
@@ -78,40 +79,33 @@ namespace ScoopSearch.Functions.Function
         {
             // TODO : Use GitHub API v4
             ConcurrentDictionary<Uri, int> buckets = new ConcurrentDictionary<Uri, int>();
-            List<Task> tasks = new List<Task>();
-            foreach (var gitHubSearchQuery in _bucketOptions.GithubBucketsSearchQueries)
-            {
-                tasks.Add(Task.Run(async () =>
+            await Parallel.ForEachAsync(_bucketOptions.GithubBucketsSearchQueries,
+                new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
+                async (gitHubSearchQuery, cancellationToken) =>
                 {
                     // First query to retrieve total_count and first results
                     var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page=1");
                     var firstResults = await GetGitHubSearchResultsAsync(searchUri, cancellationToken);
+                    firstResults.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
 
                     // Using TotalCount, parallelize the remaining queries for all the remaining pages of results
                     var totalPages = (int)Math.Ceiling(firstResults.TotalCount / (double)ResultsPerPage);
-                    var remainingResultsTasks = Enumerable.Range(2, totalPages).Select(page =>
-                    {
-                        var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}");
-                        return GetGitHubSearchResultsAsync(searchUri, cancellationToken);
-                    }).ToArray();
+                    await Parallel.ForEachAsync(Enumerable.Range(2, totalPages),
+                        new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
+                        async (page, cancellationToken) =>
+                        {
+                            var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}");
+                            var results = await GetGitHubSearchResultsAsync(searchUri, cancellationToken);
+                            results.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
+                        });
+                });
 
-                    await Task.WhenAll(remainingResultsTasks);
-
-                    var allResultsItems = firstResults.Items.Concat(remainingResultsTasks.SelectMany(x => x.Result.Items));
-                    foreach (var item in allResultsItems)
-                    {
-                        buckets[item.HtmlUri] = item.Stars;
-                    }
-                }, cancellationToken));
-            }
-
-            await Task.WhenAll(tasks);
             return buckets;
         }
 
-        private Task<GitHubSearchResults> GetGitHubSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
+        private async Task<GitHubSearchResults> GetGitHubSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
         {
-            return GetAsStringAsync(searchUri, cancellationToken)
+            return await GetAsStringAsync(searchUri, cancellationToken)
                 .ContinueWith(task
                     => JsonConvert.DeserializeObject<GitHubSearchResults>(task.Result), cancellationToken);
         }
@@ -123,24 +117,21 @@ namespace ScoopSearch.Functions.Function
             {
                 response.EnsureSuccessStatusCode();
 
-                return await response.Content.ReadAsStringAsync();
+                return await response.Content.ReadAsStringAsync(cancellationToken);
             }
         }
 
-        private Task QueueBucketsForIndexingAsync(IAsyncCollector<QueueItem> queue, QueueItem[] items, ILogger logger, CancellationToken cancellationToken)
+        private async Task QueueBucketsForIndexingAsync(IAsyncCollector<QueueItem> queue, QueueItem[] items, ILogger logger, CancellationToken cancellationToken)
         {
             logger.LogInformation($"Adding {items.Length} buckets for indexing.");
-            List<Task> tasks = new List<Task>();
-            foreach (var item in items)
-            {
-                tasks.Add(Task.Run(async () =>
+            await Parallel.ForEachAsync(
+                items,
+                new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken},
+                async (item, cancellationToken) =>
                 {
                     logger.LogDebug($"Adding bucket '{item.Bucket}' (stars: {item.Stars}, official: {item.Official}) to queue.");
                     await queue.AddAsync(item, cancellationToken);
-                }, cancellationToken));
-            }
-
-            return Task.WhenAll(tasks);
+                });
         }
 
         private async Task CleanIndexFromNonExistentBucketsAsync(IEnumerable<Uri> buckets, ILogger logger, CancellationToken cancellationToken)
@@ -149,18 +140,15 @@ namespace ScoopSearch.Functions.Function
             var deletedBuckets = allBucketsFromIndex.Except(buckets).ToArray();
             logger.LogInformation($"{deletedBuckets.Length} buckets to remove from the index.");
 
-            List<Task> tasks = new List<Task>();
-            foreach (var deletedBucket in deletedBuckets.TakeWhile(x => !cancellationToken.IsCancellationRequested))
-            {
-                tasks.Add(Task.Run(async () =>
+            await Parallel.ForEachAsync(
+                deletedBuckets.TakeWhile(x => !cancellationToken.IsCancellationRequested),
+                new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
+                async (deletedBucket, cancellationToken) =>
                 {
                     var manifests = (await _indexer.GetExistingManifestsAsync(deletedBucket, cancellationToken)).ToArray();
                     logger.LogDebug($"Deleting {manifests.Length} manifests from bucket {deletedBucket}.");
                     await _indexer.DeleteManifestsAsync(manifests, cancellationToken);
-                }, cancellationToken));
-            }
-
-            await Task.WhenAll(tasks);
+                });
         }
     }
 }
