@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,7 +67,19 @@ namespace ScoopSearch.Functions
                         new AuthenticationHeaderValue("Token", configuration["GitHubToken"]);
                 })
                 .AddTransientHttpErrorPolicy(builder =>
-                    builder.WaitAndRetryAsync(4, attempt => TimeSpan.FromSeconds(Math.Min(1, (attempt - 1) * 5))));
+                    builder.WaitAndRetryAsync(4, attempt => TimeSpan.FromSeconds(Math.Min(1, (attempt - 1) * 5))))
+                .AddPolicyHandler(Policy<HttpResponseMessage>
+                    .HandleResult(result => result.IsSuccessStatusCode == false && result.StatusCode == HttpStatusCode.Forbidden)
+                    .WaitAndRetryAsync(4, (_, result, _) =>
+                    {
+                        if (result.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+                        {
+                            var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
+                            return rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
+                        }
+
+                        throw new NotSupportedException("Unknown forbidden error");
+                    }, (_, _, _, _) => Task.CompletedTask));
             builder.Services.AddSingleton<IGitRepository, GitRepository>();
             builder.Services.AddSingleton<IManifestCrawler, ManifestCrawler>();
             builder.Services.AddSingleton<IIndexer, AzureSearchIndexer>();
