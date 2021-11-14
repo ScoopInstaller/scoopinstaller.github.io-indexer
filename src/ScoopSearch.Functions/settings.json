@@ -18,6 +18,10 @@
             "https://github.com/kkzzhizhou/scoop-apps", // Aggregates several other buckets
             "https://github.com/mertd/shovel-data", // All manifests are in a single file
             "https://github.com/h404bi/dorado", // Redirects to https://github.com/chawyehsu/dorado
+            "https://github.com/01walid/it-scoop", // Not a scoop bucket
+            "https://github.com/go2sun/scoop-bucket-1", // Dup of https://github.com/dodorz/scoop
+            "https://github.com/Psychopovt/open-scoop", // Fork of https://github.com/lptstr/lptstr-scoop
+            "https://github.com/puja255/scoop" // Clone of Main bucket
         ],
 
         "ManualBuckets": [
