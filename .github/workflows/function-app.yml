@@ -6,7 +6,7 @@ env:
   AZURE_FUNCTIONAPP_NAME: ScoopSearch.Functions
   AZURE_FUNCTIONAPP_PATH: ${{ github.workspace }}/src/
   # AZURE_FUNCTIONAPP_PUBLISH_PROFILE: '' # Secret in the repository
-  DOTNET_VERSION: '3.1.100'
+  DOTNET_VERSION: '6.0.x'
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Setup .NET Core ${{ env.DOTNET_VERSION }}
+    - name: Setup .NET ${{ env.DOTNET_VERSION }}
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
