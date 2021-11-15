@@ -26,11 +26,27 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.7
+      with:
+        versionSpec: '5.x'
+
+    - name: Run GitVersion
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0.9.7
+
     - name: Install dependencies
       run: dotnet restore ${{ env.AZURE_FUNCTIONAPP_PATH }}
 
     - name: Publish
-      run: dotnet publish ${{ env.AZURE_FUNCTIONAPP_PATH }} --configuration Release --no-restore --output ${{ env.OUTPUT_PATH }}
+      run: >
+        dotnet publish ${{ env.AZURE_FUNCTIONAPP_PATH }}
+        --configuration Release
+        --no-restore
+        --output ${{ env.OUTPUT_PATH }}
+        -p:Version=${{ steps.gitversion.outputs.AssemblySemVer }}
+        -p:FileVersion=${{ steps.gitversion.outputs.AssemblySemFileVer }}
+        -p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
