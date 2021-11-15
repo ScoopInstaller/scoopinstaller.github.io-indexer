@@ -13,6 +13,7 @@
 
         "IgnoredBuckets": [
             "https://github.com/lukesampson/scoop", // No manifests inside
+            "https://github.com/Ash258/Scoop-GithubActions", // No manifest inside
             "https://github.com/nueko/scoop-php-ext",
             "https://github.com/pavanbijja/scoop-bucket",
             "https://github.com/rivy/scoop.bucket.scoop-main",
