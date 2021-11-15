@@ -137,7 +137,7 @@ namespace ScoopSearch.Functions.Git
                 }
                 else
                 {
-                    throw new InvalidOperationException($"No remote branch found for repository {repositoryRoot}");
+                    _logger.LogWarning($"No remote branch found for repository {repositoryRoot}");
                 }
             }
         }
@@ -154,7 +154,7 @@ namespace ScoopSearch.Functions.Git
             {
                 if (!repository.Branches.Any())
                 {
-                    throw new InvalidOperationException($"No remote branch found for repository {repositoryRoot}");
+                    _logger.LogWarning($"No remote branch found for repository {repositoryRoot}");
                 }
             }
         }
