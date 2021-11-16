@@ -38,7 +38,7 @@ namespace ScoopSearch.Functions.Manifest
                     var branchName = repository.Head.FriendlyName;
 
                     var manifestsSubPath = repository.Index.Any(x => x.Path.StartsWith("bucket/"))
-                        ? "bucket/"
+                        ? "bucket"
                         : string.Empty;
                     var manifests = repository.Index.Where(x => IsManifestFile(x.Path, manifestsSubPath));
                     bool IsManifestPredicate(string filePath) => IsManifestFile(filePath, manifestsSubPath);
@@ -74,7 +74,7 @@ namespace ScoopSearch.Functions.Manifest
 
         private bool IsManifestFile(string filePath, string manifestsSubPath)
         {
-            return filePath.StartsWith(manifestsSubPath)
+            return Path.GetDirectoryName(filePath) == manifestsSubPath
                    && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
         }
 
