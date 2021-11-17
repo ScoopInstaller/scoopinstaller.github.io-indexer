@@ -84,20 +84,18 @@ namespace ScoopSearch.Functions.Function
                 async (gitHubSearchQuery, cancellationToken) =>
                 {
                     // First query to retrieve total_count and first results
-                    var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page=1");
-                    var firstResults = await GetGitHubSearchResultsAsync(searchUri, cancellationToken);
+                    var firstSearchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page=1&sort=updated");
+                    var firstResults = await GetGitHubSearchResultsAsync(firstSearchUri, cancellationToken);
                     firstResults.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
 
                     // Using TotalCount, parallelize the remaining queries for all the remaining pages of results
                     var totalPages = (int)Math.Ceiling(firstResults.TotalCount / (double)ResultsPerPage);
-                    await Parallel.ForEachAsync(Enumerable.Range(2, totalPages),
-                        new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
-                        async (page, cancellationToken) =>
-                        {
-                            var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}");
-                            var results = await GetGitHubSearchResultsAsync(searchUri, cancellationToken);
-                            results.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
-                        });
+                    for (int page = 2; page <= totalPages; page++)
+                    {
+                        var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}&sort=updated");
+                        var results = await GetGitHubSearchResultsAsync(searchUri, cancellationToken);
+                        results.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
+                    }
                 });
 
             return buckets;
