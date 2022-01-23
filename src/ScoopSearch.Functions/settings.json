@@ -13,6 +13,7 @@
 
         "IgnoredBuckets": [
             "https://github.com/lukesampson/scoop", // No manifests inside
+            "https://github.com/rivy/scoop.bucket-scoop.main",
 
             // List from https://github.com/rasa/scoop-directory/blob/master/exclude.txt
             "https://github.com/01walid/it-scoop",
@@ -958,7 +959,6 @@
             "https://github.com/prezesp/scoop-viewer-bucket",
             "https://github.com/rasa/scoops",
             "https://github.com/rcqls/scoop-extras",
-            "https://github.com/rivy/scoop.bucket-scoop.main",
             "https://github.com/rkolka/scoop-manifold",
             "https://github.com/Sandex/scoop-supernova",
             "https://github.com/se35710/scoop-ibm",
