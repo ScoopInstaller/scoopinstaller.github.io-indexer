@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -43,24 +45,32 @@ namespace ScoopSearch.Functions.Function
         {
             var officialBucketsTask = RetrieveOfficialBucketsAsync(cancellationToken);
             var githubBucketsTask = SearchForBucketsOnGitHubAsync(cancellationToken);
+            var ignoredBucketsTask = RetrieveBucketsAsync(this._bucketOptions.IgnoredBucketsListUrl, logger, cancellationToken);
+            var manualBucketsTask = RetrieveBucketsAsync(this._bucketOptions.ManualBucketsListUrl, logger, cancellationToken);
 
-            var officialBuckets = await officialBucketsTask;
-            var githubBuckets = await githubBucketsTask;
-            logger.LogInformation($"Found {officialBuckets.Count} official buckets.");
-            logger.LogInformation($"Found {githubBuckets.Count} buckets on GitHub.");
+            await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
 
-            var allBuckets = githubBuckets.Keys
-                .Concat(officialBuckets)
+            logger.LogInformation($"Found {officialBucketsTask.Result.Count} official buckets.");
+            logger.LogInformation($"Found {githubBucketsTask.Result.Count} buckets on GitHub.");
+            logger.LogInformation($"Found {_bucketOptions.IgnoredBuckets.Count} buckets to ignore.");
+            logger.LogInformation($"Found {ignoredBucketsTask.Result.Count} buckets to ignore from external list.");
+            logger.LogInformation($"Found {_bucketOptions.ManualBuckets.Count} buckets to manually add.");
+            logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to manually add from external list.");
+
+            var allBuckets = githubBucketsTask.Result.Keys
+                .Concat(officialBucketsTask.Result)
                 .Concat(_bucketOptions.ManualBuckets)
+                .Concat(manualBucketsTask.Result)
                 .Except(_bucketOptions.IgnoredBuckets)
+                .Except(ignoredBucketsTask.Result)
                 .ToHashSet();
 
             await CleanIndexFromNonExistentBucketsAsync(allBuckets, logger, cancellationToken);
 
             var bucketsToIndex = allBuckets.Select(x =>
             {
-                var stars = githubBuckets.TryGetValue(x, out var value) ? value : -1;
-                var official = officialBuckets.Contains(x);
+                var stars = githubBucketsTask.Result.TryGetValue(x, out var value) ? value : -1;
+                var official = officialBucketsTask.Result.Contains(x);
                 return new QueueItem(x, stars, official);
             }).ToArray();
 
@@ -73,6 +83,37 @@ namespace ScoopSearch.Functions.Function
             var officialBuckets = JsonConvert.DeserializeObject<Dictionary<string, string>>(contentJson).Values;
 
             return officialBuckets.Select(x => new Uri(x)).ToHashSet();
+        }
+
+        private async Task<HashSet<Uri>> RetrieveBucketsAsync(Uri bucketsList, ILogger logger, CancellationToken cancellationToken)
+        {
+            HashSet<Uri> buckets = new HashSet<Uri>();
+            try
+            {
+                var content = await GetAsStringAsync(bucketsList, cancellationToken);
+                using (var csv = new CsvHelper.CsvReader(new StringReader(content), CultureInfo.InvariantCulture))
+                {
+                    csv.Read();
+                    var r = csv.ReadHeader();
+
+                    while (csv.Read())
+                    {
+                        var record = csv.GetField<string>("url");
+                        if (record.EndsWith(".git"))
+                        {
+                            record = record.Substring(0, record.Length - 4);
+                        }
+
+                        buckets.Add(new Uri(record));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unable to read/parse data from '{0}'", bucketsList);
+            }
+
+            return buckets;
         }
 
         private async Task<IDictionary<Uri, int>> SearchForBucketsOnGitHubAsync(CancellationToken cancellationToken)
