@@ -1,5 +1,4 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace ScoopSearch.Functions.Data
 {
@@ -14,20 +13,6 @@ namespace ScoopSearch.Functions.Data
         public int TotalCount { get; private set; }
 
         [JsonProperty("items")]
-        public GitHubSearchResult[] Items { get; private set; }
-
-        public class GitHubSearchResult
-        {
-            [JsonConstructor]
-            private GitHubSearchResult()
-            {
-            }
-
-            [JsonProperty("html_url")]
-            public Uri HtmlUri { get; private set; }
-
-            [JsonProperty("stargazers_count")]
-            public int Stars { get; private set; }
-        }
+        public GitHubRepo[] Items { get; private set; }
     }
 }

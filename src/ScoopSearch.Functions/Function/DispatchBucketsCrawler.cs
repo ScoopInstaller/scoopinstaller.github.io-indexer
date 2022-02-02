@@ -21,6 +21,7 @@ namespace ScoopSearch.Functions.Function
     {
         private const int ResultsPerPage = 100;
         private const int MaxDegreeOfParallelism = 8;
+        private const string GitHubApiRepoBaseUri = "https://api.github.com/repos";
 
         private readonly HttpClient _githubHttpClient;
         private readonly IIndexer _indexer;
@@ -67,12 +68,13 @@ namespace ScoopSearch.Functions.Function
 
             await CleanIndexFromNonExistentBucketsAsync(allBuckets, logger, cancellationToken);
 
-            var bucketsToIndex = allBuckets.Select(x =>
+            var bucketsToIndexTasks = allBuckets.Select(async x =>
             {
-                var stars = githubBucketsTask.Result.TryGetValue(x, out var value) ? value : -1;
+                var stars = githubBucketsTask.Result.TryGetValue(x, out var value) ? value : (await GetGitHubRepoAsync(x, cancellationToken))?.Stars ?? -1;
                 var official = officialBucketsTask.Result.Contains(x);
                 return new QueueItem(x, stars, official);
             }).ToArray();
+            var bucketsToIndex = await Task.WhenAll(bucketsToIndexTasks);
 
             await QueueBucketsForIndexingAsync(queue, bucketsToIndex, logger, cancellationToken);
         }
@@ -166,6 +168,23 @@ namespace ScoopSearch.Functions.Function
             return await GetAsStringAsync(searchUri, cancellationToken)
                 .ContinueWith(task
                     => JsonConvert.DeserializeObject<GitHubSearchResults>(task.Result), cancellationToken);
+        }
+
+        private async Task<GitHubRepo> GetGitHubRepoAsync(Uri uri, CancellationToken cancellationToken)
+        {
+            var apiRepoUri = new Uri(GitHubApiRepoBaseUri + uri.PathAndQuery);
+            return await GetAsStringAsync(apiRepoUri, CancellationToken.None)
+                .ContinueWith(task =>
+                {
+                    if (task.IsCompletedSuccessfully)
+                    {
+                        return JsonConvert.DeserializeObject<GitHubRepo>(task.Result);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }, cancellationToken);
         }
 
         private async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)
