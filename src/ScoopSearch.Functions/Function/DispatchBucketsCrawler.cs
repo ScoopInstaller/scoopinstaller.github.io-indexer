@@ -94,17 +94,36 @@ namespace ScoopSearch.Functions.Function
                 using (var csv = new CsvHelper.CsvReader(new StringReader(content), CultureInfo.InvariantCulture))
                 {
                     csv.Read();
-                    var r = csv.ReadHeader();
+                    csv.ReadHeader();
 
                     while (csv.Read())
                     {
-                        var record = csv.GetField<string>("url");
-                        if (record.EndsWith(".git"))
+                        var uri = csv.GetField<string>("url");
+                        if (uri.EndsWith(".git"))
                         {
-                            record = record.Substring(0, record.Length - 4);
+                            uri = uri.Substring(0, uri.Length - 4);
                         }
 
-                        buckets.Add(new Uri(record));
+                        // Validate uri (existing repository, follow redirections...)
+                        using (var request = new HttpRequestMessage(HttpMethod.Head, uri))
+                        using (var response = await _githubHttpClient.SendAsync(request, cancellationToken))
+                        {
+                            if (request.RequestUri != null)
+                            {
+                                if (!response.IsSuccessStatusCode)
+                                {
+                                    logger.LogWarning($"Skipping '{uri}' because it returns '{(int)response.StatusCode}' status (from '{bucketsList}')");
+                                    continue;
+                                }
+
+                                if (request.RequestUri != new Uri(uri))
+                                {
+                                    logger.LogWarning($"'{uri}' redirects to '{request.RequestUri}' (from '{bucketsList}')");
+                                }
+
+                                buckets.Add(request.RequestUri);
+                            }
+                        }
                     }
                 }
             }
