@@ -24,6 +24,7 @@ namespace ScoopSearch.Functions.Function
         private const string GitHubApiRepoBaseUri = "https://api.github.com/repos";
 
         private readonly HttpClient _githubHttpClient;
+        private readonly HttpClient _githubHttpClientNoRedirect;
         private readonly IIndexer _indexer;
         private readonly BucketsOptions _bucketOptions;
 
@@ -33,6 +34,7 @@ namespace ScoopSearch.Functions.Function
             IOptions<BucketsOptions> bucketOptions)
         {
             _githubHttpClient = httpClientFactory.CreateClient(Constants.GitHubHttpClientName);
+            _githubHttpClientNoRedirect = httpClientFactory.CreateClient(Constants.GitHubHttpClientNoRedirectName);
             _indexer = indexer;
             _bucketOptions = bucketOptions.Value;
         }
@@ -46,8 +48,8 @@ namespace ScoopSearch.Functions.Function
         {
             var officialBucketsTask = RetrieveOfficialBucketsAsync(cancellationToken);
             var githubBucketsTask = SearchForBucketsOnGitHubAsync(cancellationToken);
-            var ignoredBucketsTask = RetrieveBucketsAsync(this._bucketOptions.IgnoredBucketsListUrl, logger, cancellationToken);
-            var manualBucketsTask = RetrieveBucketsAsync(this._bucketOptions.ManualBucketsListUrl, logger, cancellationToken);
+            var ignoredBucketsTask = RetrieveBucketsAsync(this._bucketOptions.IgnoredBucketsListUrl, logger, false, cancellationToken);
+            var manualBucketsTask = RetrieveBucketsAsync(this._bucketOptions.ManualBucketsListUrl, logger, true, cancellationToken);
 
             await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
 
@@ -59,11 +61,11 @@ namespace ScoopSearch.Functions.Function
             logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to manually add from external list.");
 
             var allBuckets = githubBucketsTask.Result.Keys
-                .Except(ignoredBucketsTask.Result)
                 .Concat(officialBucketsTask.Result)
                 .Concat(_bucketOptions.ManualBuckets)
                 .Concat(manualBucketsTask.Result)
                 .Except(_bucketOptions.IgnoredBuckets)
+                .Except(ignoredBucketsTask.Result)
                 .ToHashSet();
 
             await CleanIndexFromNonExistentBucketsAsync(allBuckets, logger, cancellationToken);
@@ -87,7 +89,7 @@ namespace ScoopSearch.Functions.Function
             return officialBuckets.Select(x => new Uri(x)).ToHashSet();
         }
 
-        private async Task<HashSet<Uri>> RetrieveBucketsAsync(Uri bucketsList, ILogger logger, CancellationToken cancellationToken)
+        private async Task<HashSet<Uri>> RetrieveBucketsAsync(Uri bucketsList, ILogger logger, bool followRedirects, CancellationToken cancellationToken)
         {
             HashSet<Uri> buckets = new HashSet<Uri>();
             try
@@ -108,7 +110,7 @@ namespace ScoopSearch.Functions.Function
 
                         // Validate uri (existing repository, follow redirections...)
                         using (var request = new HttpRequestMessage(HttpMethod.Head, uri))
-                        using (var response = await _githubHttpClient.SendAsync(request, cancellationToken))
+                        using (var response = await (followRedirects ? _githubHttpClient : _githubHttpClientNoRedirect).SendAsync(request, cancellationToken))
                         {
                             if (request.RequestUri != null)
                             {
