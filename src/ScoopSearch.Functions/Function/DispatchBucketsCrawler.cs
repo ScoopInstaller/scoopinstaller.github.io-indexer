@@ -59,11 +59,11 @@ namespace ScoopSearch.Functions.Function
             logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to manually add from external list.");
 
             var allBuckets = githubBucketsTask.Result.Keys
+                .Except(ignoredBucketsTask.Result)
                 .Concat(officialBucketsTask.Result)
                 .Concat(_bucketOptions.ManualBuckets)
                 .Concat(manualBucketsTask.Result)
                 .Except(_bucketOptions.IgnoredBuckets)
-                .Except(ignoredBucketsTask.Result)
                 .ToHashSet();
 
             await CleanIndexFromNonExistentBucketsAsync(allBuckets, logger, cancellationToken);
