@@ -102,14 +102,16 @@ namespace ScoopSearch.Functions.Indexer
                             {
                                 new MagnitudeScoringFunction(
                                     ManifestMetadata.OfficialRepositoryNumberField,
-                                    5,
+                                    10,
                                     0,
-                                    1),
+                                    1,
+                                    false),
                                 new MagnitudeScoringFunction(
                                     ManifestMetadata.RepositoryStarsField,
-                                    5,
+                                    10,
                                     1,
-                                    500)
+                                    100,
+                                    true)
                             })
                     },
                     DefaultScoringProfile = ScoringProfile,
