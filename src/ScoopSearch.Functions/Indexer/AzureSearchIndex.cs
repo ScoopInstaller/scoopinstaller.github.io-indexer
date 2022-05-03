@@ -34,7 +34,6 @@ namespace ScoopSearch.Functions.Indexer
             "https://localhost:5000",
             "http://localhost:30000",
             "https://scoopinstaller.github.io",
-            "https://scoopinstaller.github.io/scoopinstaller-dev.github.io",
             "https://scoop.sh"
         };
 
