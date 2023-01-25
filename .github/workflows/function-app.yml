@@ -19,23 +19,23 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0 # Full history is required by GitVersion
 
     - name: Setup .NET ${{ env.DOTNET_VERSION }}
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v0.9.7
+      uses: gittools/actions/gitversion/setup@v0.9.15
       with:
         versionSpec: '5.x'
 
     - name: Run GitVersion
       id: gitversion
-      uses: gittools/actions/gitversion/execute@v0.9.7
+      uses: gittools/actions/gitversion/execute@v0.9.15
 
     - name: Install dependencies
       run: dotnet restore ${{ env.AZURE_FUNCTIONAPP_PATH }}
@@ -51,7 +51,7 @@ jobs:
         -p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: function-app
         path: ${{ env.OUTPUT_PATH }}
@@ -63,7 +63,7 @@ jobs:
 
     steps:
     - name: Download artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
           name: function-app
           path: ${{ env.OUTPUT_PATH }}
