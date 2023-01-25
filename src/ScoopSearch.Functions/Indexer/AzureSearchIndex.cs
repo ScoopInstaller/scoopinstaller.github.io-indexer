@@ -30,11 +30,7 @@ namespace ScoopSearch.Functions.Indexer
 
         private readonly string[] CorsAllowedHosts =
         {
-            "http://localhost:3000",
-            "https://localhost:5000",
-            "http://localhost:30000",
-            "https://scoopinstaller.github.io",
-            "https://scoop.sh"
+            "*"
         };
 
         public void CreateIndexIfRequired(SearchServiceClient client, string indexName)
