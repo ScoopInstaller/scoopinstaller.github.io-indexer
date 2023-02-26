@@ -5,10 +5,12 @@
         "GithubBucketsSearchQueries": [
             "https://api.github.com/search/repositories?q=topic:scoop-bucket",
             // Split search queries as GitHub search API returns at most 1000 results
-            "https://api.github.com/search/repositories?q=scoop-bucket+created%3A%3E%3D2020-01-01",
-            "https://api.github.com/search/repositories?q=scoop-bucket+created%3A%3C2020-01-01",
-            "https://api.github.com/search/repositories?q=scoop+bucket+created%3A%3E%3D2020-01-01",
-            "https://api.github.com/search/repositories?q=scoop+bucket+created%3A%3C2020-01-01"
+            "https://api.github.com/search/repositories?q=scoop-bucket+created:>2023-01-01",
+            "https://api.github.com/search/repositories?q=scoop+bucket+created:>2023-01-01",
+            "https://api.github.com/search/repositories?q=scoop-bucket+created:2020-01-01..2023-01-01",
+            "https://api.github.com/search/repositories?q=scoop+bucket+created:2020-01-01..2023-01-01",
+            "https://api.github.com/search/repositories?q=scoop-bucket+created:<2020-01-01",
+            "https://api.github.com/search/repositories?q=scoop+bucket+created:<2020-01-01"
         ],
 
         "IgnoredBuckets": [
