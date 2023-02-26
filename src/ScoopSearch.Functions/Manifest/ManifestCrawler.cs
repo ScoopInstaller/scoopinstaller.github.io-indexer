@@ -74,7 +74,7 @@ namespace ScoopSearch.Functions.Manifest
 
         private bool IsManifestFile(string filePath, string manifestsSubPath)
         {
-            return Path.GetDirectoryName(filePath) == manifestsSubPath
+            return Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true
                    && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
         }
 
