@@ -9,7 +9,7 @@ on:
 env:
   OUTPUT_PATH: ${{ github.workspace }}/output
   AZURE_FUNCTIONAPP_NAME: ScoopSearch.Functions
-  AZURE_FUNCTIONAPP_PATH: ${{ github.workspace }}/src/
+  AZURE_FUNCTIONAPP_PATH: ${{ github.workspace }}/src/ScoopSearch.Functions/
   # AZURE_FUNCTIONAPP_PUBLISH_PROFILE: '' # Secret in the repository
   DOTNET_VERSION: '6.0.x'
 
