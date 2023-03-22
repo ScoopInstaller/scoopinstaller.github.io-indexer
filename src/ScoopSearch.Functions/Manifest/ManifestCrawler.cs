@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading;
-using System.Threading.Tasks;
 using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -29,7 +27,7 @@ namespace ScoopSearch.Functions.Manifest
 
         public IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken)
         {
-            var results = new ConcurrentBag<ManifestInfo>();
+            var results = new List<ManifestInfo>();
 
             var repositoryRoot = _gitRepository.DownloadRepository(bucketUri, cancellationToken);
             if (repositoryRoot != null)
@@ -46,28 +44,26 @@ namespace ScoopSearch.Functions.Manifest
                     bool IsManifestPredicate(string filePath) => IsManifestFile(filePath, manifestsSubPath);
                     var commitCache = _gitRepository.GetCommitsCache(repository, IsManifestPredicate, cancellationToken);
 
-                    Parallel.ForEach(manifests,
-                        new ParallelOptions { CancellationToken = cancellationToken },
-                        entry =>
+                    foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
+                    {
+                        var commit = commitCache[entry.Path].First();
+
+                        var manifestMetadata = new ManifestMetadata(
+                            repositoryRemote,
+                            branchName,
+                            entry.Path,
+                            commit.Author.Name,
+                            commit.Author.Email,
+                            commit.Author.When,
+                            commit.Sha);
+
+                        var blob = (Blob)commit[entry.Path].Target;
+                        var manifest = CreateManifest(blob.GetContentText(), manifestMetadata);
+                        if (manifest != null)
                         {
-                            var commit = commitCache[entry.Path].First();
-
-                            var manifestMetadata = new ManifestMetadata(
-                                repositoryRemote,
-                                branchName,
-                                entry.Path,
-                                commit.Author.Name,
-                                commit.Author.Email,
-                                commit.Author.When,
-                                commit.Sha);
-
-                            var blob = (Blob)commit[entry.Path].Target;
-                            var manifest = CreateManifest(blob.GetContentText(), manifestMetadata);
-                            if (manifest != null)
-                            {
-                                results.Add(manifest);
-                            }
-                        });
+                            results.Add(manifest);
+                        }
+                    }
                 }
 
                 _gitRepository.DeleteRepository(repositoryRoot);
