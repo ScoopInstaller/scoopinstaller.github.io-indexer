@@ -5,11 +5,11 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
+using ScoopSearch.Functions.Configuration;
 
 namespace ScoopSearch.Functions
 {
@@ -35,7 +35,7 @@ namespace ScoopSearch.Functions
                     // Github requires a user-agent
                     var assemblyName = typeof(Extensions).Assembly.GetName();
                     client.DefaultRequestHeaders.UserAgent.Add(
-                        new ProductInfoHeaderValue(assemblyName.Name, assemblyName.Version!.ToString()));
+                        new ProductInfoHeaderValue(assemblyName.Name!, assemblyName.Version!.ToString()));
 
                     // Authentication to avoid API rate limitation
                     var gitHubOptions = serviceProvider.GetRequiredService<IOptions<GitHubOptions>>();

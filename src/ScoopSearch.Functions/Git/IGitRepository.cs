@@ -7,7 +7,7 @@ namespace ScoopSearch.Functions.Git
 {
     public interface IGitRepository
     {
-        string DownloadRepository(Uri uri, CancellationToken cancellationToken);
+        string? DownloadRepository(Uri uri, CancellationToken cancellationToken);
 
         void DeleteRepository(string repository);
 

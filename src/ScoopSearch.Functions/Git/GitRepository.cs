@@ -23,7 +23,7 @@ namespace ScoopSearch.Functions.Git
             _logger = logger;
         }
 
-        public string DownloadRepository(Uri uri, CancellationToken cancellationToken)
+        public string? DownloadRepository(Uri uri, CancellationToken cancellationToken)
         {
             var repositoryRoot = Path.Combine(RepositoriesRoot, uri.AbsolutePath.Substring(1)); // Remove leading slash
             try
@@ -77,7 +77,7 @@ namespace ScoopSearch.Functions.Git
             var commitsCache = new Dictionary<string, List<Commit>>();
             foreach (var commit in repository.Head.Commits.TakeWhile(x => !cancellationToken.IsCancellationRequested))
             {
-                IEnumerable<string> filesInCommit = null;
+                IEnumerable<string> filesInCommit = null!;
                 if (commit.Parents.Any())
                 {
                     var treeDiff = repository.Diff.Compare<TreeChanges>(commit.Parents.First().Tree, commit.Tree);

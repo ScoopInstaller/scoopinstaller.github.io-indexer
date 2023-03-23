@@ -10,8 +10,7 @@ namespace ScoopSearch.Functions.Data
         {
         }
 
-        [JsonProperty("html_url")]
-        public Uri HtmlUri { get; private set; }
+        [JsonProperty("html_url")] public Uri HtmlUri { get; private set; } = null!;
 
         [JsonProperty("stargazers_count")]
         public int Stars { get; private set; }

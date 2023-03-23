@@ -38,6 +38,12 @@ namespace ScoopSearch.Functions
                     options.IndexName = configuration["AzureSearchIndexName"];
                 });
             builder.Services
+                .AddOptions<GitHubOptions>()
+                .Configure<IConfiguration>((options, configuration) =>
+                {
+                    options.Token = configuration["GitHubToken"];
+                });
+            builder.Services
                 .AddOptions<QueuesOptions>()
                 .Configure<IConfiguration>((options, configuration) =>
                 {
@@ -81,8 +87,13 @@ namespace ScoopSearch.Functions
         private IConfigurationRoot CreateCustomConfigurationRoot(IServiceProvider serviceProvider, ServiceDescriptor configurationDescriptor)
         {
             // Retrieve original providers
-            var originalConfigurationRoot = (IConfigurationRoot)(configurationDescriptor.ImplementationInstance ?? configurationDescriptor.ImplementationFactory(serviceProvider));
-            var appDirectory = serviceProvider.GetService<IOptions<ExecutionContextOptions>>().Value.AppDirectory;
+            var originalConfigurationRoot = (IConfigurationRoot?)(configurationDescriptor.ImplementationInstance ?? configurationDescriptor.ImplementationFactory?.Invoke(serviceProvider));
+            if (originalConfigurationRoot == null)
+            {
+                throw new InvalidOperationException("Unable to retrieve original configuration root.");
+            }
+
+            var appDirectory = serviceProvider.GetRequiredService<IOptions<ExecutionContextOptions>>().Value.AppDirectory;
 
             // Create additional configuration providers
             var additionalConfigurationRoot = new ConfigurationBuilder()

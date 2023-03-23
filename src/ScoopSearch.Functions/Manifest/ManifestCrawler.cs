@@ -78,7 +78,7 @@ namespace ScoopSearch.Functions.Manifest
                    && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
         }
 
-        private ManifestInfo CreateManifest(string contentJson, ManifestMetadata metadata)
+        private ManifestInfo? CreateManifest(string contentJson, ManifestMetadata metadata)
         {
             try
             {

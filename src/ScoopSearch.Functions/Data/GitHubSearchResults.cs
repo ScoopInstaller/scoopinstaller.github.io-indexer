@@ -13,6 +13,6 @@ namespace ScoopSearch.Functions.Data
         public int TotalCount { get; private set; }
 
         [JsonProperty("items")]
-        public GitHubRepo[] Items { get; private set; }
+        public GitHubRepo[] Items { get; private set; } = null!;
     }
 }

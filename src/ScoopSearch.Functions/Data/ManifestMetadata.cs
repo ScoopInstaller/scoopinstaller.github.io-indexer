@@ -38,7 +38,7 @@ namespace ScoopSearch.Functions.Data
         [IsSearchable, IsFilterable, IsSortable, IsFacetable]
         [Analyzer(AzureSearchIndex.UrlAnalyzer)]
         [JsonProperty]
-        public string Repository { get; private set; }
+        public string Repository { get; private set; } = null!;
 
         [JsonProperty]
         public bool OfficialRepository { get; private set; }
@@ -54,19 +54,19 @@ namespace ScoopSearch.Functions.Data
 
         [IsFilterable]
         [JsonProperty]
-        public string BranchName { get; private set; }
+        public string BranchName { get; private set; } = null!;
 
         [IsFilterable, IsSortable, IsFacetable]
         [JsonProperty]
-        public string FilePath { get; private set; }
+        public string FilePath { get; private set; } = null!;
 
         [IsSearchable, IsFilterable, IsSortable, IsFacetable]
         [JsonProperty]
-        public string AuthorName { get; private set; }
+        public string AuthorName { get; private set; } = null!;
 
         [IsSearchable, IsFilterable, IsSortable, IsFacetable]
         [JsonProperty]
-        public string AuthorMail { get; private set; }
+        public string AuthorMail { get; private set; } = null!;
 
         [IsFilterable, IsSortable, IsFacetable]
         [JsonProperty]
@@ -74,7 +74,7 @@ namespace ScoopSearch.Functions.Data
 
         [IsFilterable]
         [JsonProperty]
-        public string Sha { get; private set; }
+        public string Sha { get; private set; } = null!;
 
         public void SetRepositoryMetadata(bool officialRepository, int repositoryStars)
         {

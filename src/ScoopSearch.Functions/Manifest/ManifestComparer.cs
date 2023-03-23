@@ -16,7 +16,7 @@ namespace ScoopSearch.Functions.Manifest
             _exactComparer = exactComparer;
         }
 
-        public bool Equals(ManifestInfo x, ManifestInfo y)
+        public bool Equals(ManifestInfo? x, ManifestInfo? y)
         {
             if (x == null && y == null)
             {

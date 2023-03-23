@@ -23,52 +23,52 @@ namespace ScoopSearch.Functions.Data
         [System.ComponentModel.DataAnnotations.Key]
         [IsFilterable, IsSortable]
         [JsonProperty]
-        public string Id { get; private set; }
+        public string Id { get; private set; } = null!;
 
         [IsSearchable]
         [JsonProperty]
         [Analyzer(AzureSearchIndex.StandardAnalyzer)]
-        public string Name { get; private set; }
+        public string Name { get; private set; } = null!;
 
         [IsSearchable, IsSortable]
         [JsonProperty]
-        public string NameSortable { get; private set; }
+        public string NameSortable { get; private set; } = null!;
 
         [IsSearchable]
         [SearchAnalyzer(AzureSearchIndex.StandardAnalyzer)]
         [IndexAnalyzer(AzureSearchIndex.PrefixAnalyzer)]
         [JsonProperty]
-        public string NamePartial { get; private set; }
+        public string NamePartial { get; private set; } = null!;
 
         [IsSearchable]
         [SearchAnalyzer(AzureSearchIndex.ReverseAnalyzer)]
         [IndexAnalyzer(AzureSearchIndex.SuffixAnalyzer)]
         [JsonProperty]
-        public string NameSuffix { get; private set; }
+        public string NameSuffix { get; private set; } = null!;
 
         [IsSearchable]
         [Analyzer(AnalyzerName.AsString.EnLucene)]
         [JsonConverter(typeof(DescriptionConverter))]
         [JsonProperty]
-        public string Description { get; private set; }
+        public string Description { get; private set; } = null!;
 
         [IsSearchable, IsFilterable, IsSortable, IsFacetable]
         [Analyzer(AzureSearchIndex.UrlAnalyzer)]
         [JsonProperty]
-        public string Homepage { get; private set; }
+        public string Homepage { get; private set; } = null!;
 
         [IsSearchable, IsFilterable, IsFacetable]
         [JsonConverter(typeof(LicenseConverter))]
         [JsonProperty]
-        public string License { get; private set; }
+        public string License { get; private set; } = null!;
 
         [IsSearchable, IsSortable, IsFilterable]
         [Analyzer(AnalyzerName.AsString.Keyword)]
         [JsonProperty]
-        public string Version { get; private set; }
+        public string Version { get; private set; } = null!;
 
         [JsonProperty]
-        public ManifestMetadata Metadata { get; private set; }
+        public ManifestMetadata Metadata { get; private set; } = null!;
 
         [OnDeserialized]
         public void OnDeserialized(StreamingContext context)

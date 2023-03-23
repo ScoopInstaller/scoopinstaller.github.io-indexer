@@ -41,7 +41,7 @@ internal class GitHubClient : IGitHubClient
         return (followRedirects ? _githubHttpClient : _githubHttpClientNoRedirect).SendAsync(request, cancellationToken);
     }
 
-    public async Task<GitHubRepo> GetRepoAsync(Uri uri, CancellationToken cancellationToken)
+    public async Task<GitHubRepo?> GetRepoAsync(Uri uri, CancellationToken cancellationToken)
     {
         var apiRepoUri = new Uri(GitHubApiRepoBaseUri + uri.PathAndQuery);
         return await GetAsStringAsync(apiRepoUri, cancellationToken)
