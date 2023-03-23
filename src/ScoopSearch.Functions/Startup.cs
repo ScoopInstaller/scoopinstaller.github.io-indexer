@@ -9,6 +9,7 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Extensions.Options;
 using ScoopSearch.Functions.Configuration;
 using ScoopSearch.Functions.Git;
+using ScoopSearch.Functions.GitHub;
 using ScoopSearch.Functions.Indexer;
 using ScoopSearch.Functions.Interceptor;
 using ScoopSearch.Functions.Manifest;
@@ -48,6 +49,7 @@ namespace ScoopSearch.Functions
             builder.Services.AddHttpClient(Constants.GitHubHttpClientName, true);
             builder.Services.AddHttpClient(Constants.GitHubHttpClientNoRedirectName, false);
             builder.Services.AddSingleton<IGitRepository, GitRepository>();
+            builder.Services.AddSingleton<IGitHubClient, GitHubClient>();
             builder.Services.AddSingleton<IManifestCrawler, ManifestCrawler>();
             builder.Services.AddSingleton<IIndexer, AzureSearchIndexer>();
             builder.Services.AddSingleton<AzureSearchIndex>();
@@ -56,6 +58,7 @@ namespace ScoopSearch.Functions
             // Decorate some classes with interceptors
             builder.Services.AddSingleton<IAsyncInterceptor, TimingInterceptor>();
             builder.Services.DecorateWithInterceptors<IGitRepository, IAsyncInterceptor>();
+            builder.Services.DecorateWithInterceptors<IGitHubClient, IAsyncInterceptor>();
             builder.Services.DecorateWithInterceptors<IManifestCrawler, IAsyncInterceptor>();
             builder.Services.DecorateWithInterceptors<IIndexer, IAsyncInterceptor>();
         }

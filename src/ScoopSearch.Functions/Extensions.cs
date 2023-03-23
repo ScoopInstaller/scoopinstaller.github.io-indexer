@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 
 namespace ScoopSearch.Functions
@@ -37,9 +38,9 @@ namespace ScoopSearch.Functions
                         new ProductInfoHeaderValue(assemblyName.Name, assemblyName.Version!.ToString()));
 
                     // Authentication to avoid API rate limitation
-                    var configuration = serviceProvider.GetService<IConfiguration>();
+                    var gitHubOptions = serviceProvider.GetRequiredService<IOptions<GitHubOptions>>();
                     client.DefaultRequestHeaders.Authorization =
-                        new AuthenticationHeaderValue("Token", configuration["GitHubToken"]);
+                        new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                     new HttpClientHandler() { AllowAutoRedirect = allowAutoRedirect })

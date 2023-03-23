@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using ScoopSearch.Functions.Configuration;
 using ScoopSearch.Functions.Data;
+using ScoopSearch.Functions.GitHub;
 using ScoopSearch.Functions.Indexer;
 
 namespace ScoopSearch.Functions.Function
@@ -21,20 +22,17 @@ namespace ScoopSearch.Functions.Function
     {
         private const int ResultsPerPage = 100;
         private const int MaxDegreeOfParallelism = 8;
-        private const string GitHubApiRepoBaseUri = "https://api.github.com/repos";
 
-        private readonly HttpClient _githubHttpClient;
-        private readonly HttpClient _githubHttpClientNoRedirect;
+        private readonly IGitHubClient _gitHubClient;
         private readonly IIndexer _indexer;
         private readonly BucketsOptions _bucketOptions;
 
         public DispatchBucketsCrawler(
-            IHttpClientFactory httpClientFactory,
+            IGitHubClient gitHubClient,
             IIndexer indexer,
             IOptions<BucketsOptions> bucketOptions)
         {
-            _githubHttpClient = httpClientFactory.CreateClient(Constants.GitHubHttpClientName);
-            _githubHttpClientNoRedirect = httpClientFactory.CreateClient(Constants.GitHubHttpClientNoRedirectName);
+            _gitHubClient = gitHubClient;
             _indexer = indexer;
             _bucketOptions = bucketOptions.Value;
         }
@@ -72,7 +70,7 @@ namespace ScoopSearch.Functions.Function
 
             var bucketsToIndexTasks = allBuckets.Select(async x =>
             {
-                var stars = githubBucketsTask.Result.TryGetValue(x, out var value) ? value : (await GetGitHubRepoAsync(x, cancellationToken))?.Stars ?? -1;
+                var stars = githubBucketsTask.Result.TryGetValue(x, out var value) ? value : (await _gitHubClient.GetRepoAsync(x, cancellationToken))?.Stars ?? -1;
                 var official = officialBucketsTask.Result.Contains(x);
                 return new QueueItem(x, stars, official);
             }).ToArray();
@@ -83,7 +81,7 @@ namespace ScoopSearch.Functions.Function
 
         private async Task<HashSet<Uri>> RetrieveOfficialBucketsAsync(CancellationToken cancellationToken)
         {
-            var contentJson = await GetAsStringAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken);
+            var contentJson = await _gitHubClient.GetAsStringAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken);
             var officialBuckets = JsonConvert.DeserializeObject<Dictionary<string, string>>(contentJson).Values;
 
             return officialBuckets.Select(x => new Uri(x)).ToHashSet();
@@ -94,7 +92,7 @@ namespace ScoopSearch.Functions.Function
             HashSet<Uri> buckets = new HashSet<Uri>();
             try
             {
-                var content = await GetAsStringAsync(bucketsList, cancellationToken);
+                var content = await _gitHubClient.GetAsStringAsync(bucketsList, cancellationToken);
                 using (var csv = new CsvHelper.CsvReader(new StringReader(content), CultureInfo.InvariantCulture))
                 {
                     csv.Read();
@@ -110,7 +108,7 @@ namespace ScoopSearch.Functions.Function
 
                         // Validate uri (existing repository, follow redirections...)
                         using (var request = new HttpRequestMessage(HttpMethod.Head, uri))
-                        using (var response = await (followRedirects ? _githubHttpClient : _githubHttpClientNoRedirect).SendAsync(request, cancellationToken))
+                        using (var response = await _gitHubClient.SendAsync(request, followRedirects, cancellationToken))
                         {
                             if (request.RequestUri != null)
                             {
@@ -149,7 +147,7 @@ namespace ScoopSearch.Functions.Function
                 {
                     // First query to retrieve total_count and first results
                     var firstSearchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page=1&sort=updated");
-                    var firstResults = await GetGitHubSearchResultsAsync(firstSearchUri, cancellationToken);
+                    var firstResults = await _gitHubClient.GetSearchResultsAsync(firstSearchUri, cancellationToken);
                     firstResults.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
 
                     // Using TotalCount, parallelize the remaining queries for all the remaining pages of results
@@ -157,47 +155,12 @@ namespace ScoopSearch.Functions.Function
                     for (int page = 2; page <= totalPages; page++)
                     {
                         var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}&sort=updated");
-                        var results = await GetGitHubSearchResultsAsync(searchUri, cancellationToken);
+                        var results = await _gitHubClient.GetSearchResultsAsync(searchUri, cancellationToken);
                         results.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
                     }
                 });
 
             return buckets;
-        }
-
-        private async Task<GitHubSearchResults> GetGitHubSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
-        {
-            return await GetAsStringAsync(searchUri, cancellationToken)
-                .ContinueWith(task
-                    => JsonConvert.DeserializeObject<GitHubSearchResults>(task.Result), cancellationToken);
-        }
-
-        private async Task<GitHubRepo> GetGitHubRepoAsync(Uri uri, CancellationToken cancellationToken)
-        {
-            var apiRepoUri = new Uri(GitHubApiRepoBaseUri + uri.PathAndQuery);
-            return await GetAsStringAsync(apiRepoUri, CancellationToken.None)
-                .ContinueWith(task =>
-                {
-                    if (task.IsCompletedSuccessfully)
-                    {
-                        return JsonConvert.DeserializeObject<GitHubRepo>(task.Result);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }, cancellationToken);
-        }
-
-        private async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)
-        {
-            using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-            using (var response = await _githubHttpClient.SendAsync(request, cancellationToken))
-            {
-                response.EnsureSuccessStatusCode();
-
-                return await response.Content.ReadAsStringAsync(cancellationToken);
-            }
         }
 
         private async Task QueueBucketsForIndexingAsync(IAsyncCollector<QueueItem> queue, QueueItem[] items, ILogger logger, CancellationToken cancellationToken)
