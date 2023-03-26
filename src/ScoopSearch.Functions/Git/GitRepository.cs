@@ -142,6 +142,11 @@ namespace ScoopSearch.Functions.Git
                 }
             } while (currentLine != null);
 
+            foreach (var file in files)
+            {
+                commitsCache.TryAdd(file, new CommitInfo(authorName!, authorEmail!, commitDate, sha!));
+            }
+
             process.WaitForExit();
             if (process.ExitCode != 0)
             {
