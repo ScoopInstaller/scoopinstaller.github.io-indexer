@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using LibGit2Sharp;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ScoopSearch.Functions.Data;
 
 namespace ScoopSearch.Functions.Git
 {
@@ -72,35 +75,80 @@ namespace ScoopSearch.Functions.Git
             }
         }
 
-        public IDictionary<string, Commit[]> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken)
+        public IDictionary<string, CommitInfo> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken)
         {
-            var commitsCache = new Dictionary<string, List<Commit>>();
-            foreach (var commit in repository.Head.Commits.TakeWhile(x => !cancellationToken.IsCancellationRequested))
+            var processStartInfo = new ProcessStartInfo()
             {
-                IEnumerable<string> filesInCommit = null!;
-                if (commit.Parents.Any())
-                {
-                    var treeDiff = repository.Diff.Compare<TreeChanges>(commit.Parents.First().Tree, commit.Tree);
-                    filesInCommit = treeDiff.Select(x => x.Path);
-                }
-                else
-                {
-                    var trees = new[] { commit.Tree}.Concat(commit.Tree.Select(x => x.Target).OfType<Tree>());
-                    filesInCommit = trees.SelectMany(x => x.Where(y => y.Mode != Mode.Directory).Select(y => y.Path));
-                }
+                // Use git deployed with the Azure function or try to get git from the path
+                FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? Path.Combine(Path.GetDirectoryName(GetType().Assembly.Location)!, "GitWindowsMinimal", "mingw64", "bin", "git.exe")
+                    : "git",
+                Arguments = @"log --pretty=format:""commit:%H%nauthor_name:%an%nauthor_email:%ae%ndate:%ai"" --name-only",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                WorkingDirectory = repository.Info.WorkingDirectory
+            };
 
-                foreach (var filePath in filesInCommit.Where(x => filter(x)))
+            _logger.LogInformation("Using git from {gitPath}", processStartInfo.FileName);
+
+            var process = new Process();
+            process.StartInfo = processStartInfo;
+            process.Start();
+
+            var commitsCache = new Dictionary<string, CommitInfo>();
+            string? currentLine;
+            string? sha = default;
+            string? authorName = default;
+            string? authorEmail = default;
+            DateTimeOffset commitDate = default;
+            List<string> files = new List<string>();
+
+            do
+            {
+                currentLine = process.StandardOutput.ReadLine();
+                if (currentLine != null)
                 {
-                    if (!commitsCache.ContainsKey(filePath))
+                    var parts = currentLine.Split(':');
+                    switch (parts[0])
                     {
-                        commitsCache.Add(filePath, new List<Commit>());
-                    }
+                        case "commit":
+                            sha = currentLine.Substring(parts[0].Length + 1);
+                            break;
+                        case "author_name":
+                            authorName = currentLine.Substring(parts[0].Length + 1);
+                            break;
+                        case "author_email":
+                            authorEmail = currentLine.Substring(parts[0].Length + 1);
+                            break;
+                        case "date":
+                            commitDate = DateTimeOffset.Parse(currentLine.Substring(parts[0].Length + 1));
+                            break;
+                        case "":
+                            foreach (var file in files)
+                            {
+                                commitsCache.TryAdd(file, new CommitInfo(authorName!, authorEmail!, commitDate, sha!));
+                            }
 
-                    commitsCache[filePath].Add(commit);
+                            files.Clear();
+                            break;
+
+                        default:
+                            if (filter(currentLine))
+                            {
+                                files.Add(currentLine);
+                            }
+                            break;
+                    }
                 }
+            } while (currentLine != null);
+
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                throw new Exception($"git.exe returned non-zero exit code ({process.ExitCode})");
             }
 
-            return commitsCache.ToDictionary(k => k.Key, v => v.Value.ToArray());
+            return commitsCache;
         }
 
         private string RepositoriesRoot

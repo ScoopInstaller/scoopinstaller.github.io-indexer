@@ -37,7 +37,7 @@ namespace ScoopSearch.Functions.Manifest
                     var repositoryRemote = repository.Network.Remotes.Single().Url;
                     var branchName = repository.Head.FriendlyName;
 
-                    var manifestsSubPath = repository.Index.Any(x => x.Path.StartsWith("bucket/"))
+                    var manifestsSubPath = repository.Head.Tip["bucket"]?.Mode == Mode.Directory
                         ? "bucket"
                         : string.Empty;
                     var manifests = repository.Index.Where(x => IsManifestFile(x.Path, manifestsSubPath));
@@ -46,19 +46,19 @@ namespace ScoopSearch.Functions.Manifest
 
                     foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
                     {
-                        var commit = commitCache[entry.Path].First();
+                        var commit = commitCache[entry.Path];
 
                         var manifestMetadata = new ManifestMetadata(
                             repositoryRemote,
                             branchName,
                             entry.Path,
-                            commit.Author.Name,
-                            commit.Author.Email,
-                            commit.Author.When,
+                            commit.AuthorName,
+                            commit.AuthorEmail,
+                            commit.Date,
                             commit.Sha);
 
-                        var blob = (Blob)commit[entry.Path].Target;
-                        var manifest = CreateManifest(blob.GetContentText(), manifestMetadata);
+                        var manifestData = File.ReadAllText(Path.Combine(repository.Info.WorkingDirectory, entry.Path));
+                        var manifest = CreateManifest(manifestData, manifestMetadata);
                         if (manifest != null)
                         {
                             results.Add(manifest);

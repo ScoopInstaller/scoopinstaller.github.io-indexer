@@ -38,7 +38,7 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0.9.15
 
     - name: Install dependencies
-      run: dotnet restore ${{ env.AZURE_FUNCTIONAPP_PATH }}
+      run: dotnet restore ${{ env.AZURE_FUNCTIONAPP_PATH }} --verbosity detailed
 
     - name: Publish
       run: >
@@ -49,6 +49,7 @@ jobs:
         -p:Version=${{ steps.gitversion.outputs.AssemblySemVer }}
         -p:FileVersion=${{ steps.gitversion.outputs.AssemblySemFileVer }}
         -p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
+        --verbosity detailed
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3

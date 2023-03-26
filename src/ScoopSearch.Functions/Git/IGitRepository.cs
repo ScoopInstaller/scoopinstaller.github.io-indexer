@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using LibGit2Sharp;
+using ScoopSearch.Functions.Data;
 
 namespace ScoopSearch.Functions.Git
 {
@@ -11,6 +12,6 @@ namespace ScoopSearch.Functions.Git
 
         void DeleteRepository(string repository);
 
-        IDictionary<string, Commit[]> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken);
+        IDictionary<string, CommitInfo> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken);
     }
 }
