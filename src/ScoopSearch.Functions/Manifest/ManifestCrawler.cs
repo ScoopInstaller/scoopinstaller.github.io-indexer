@@ -36,6 +36,11 @@ namespace ScoopSearch.Functions.Manifest
                 {
                     var repositoryRemote = repository.Network.Remotes.Single().Url;
                     var branchName = repository.Head.FriendlyName;
+                    if (repository.Head.Tip == null)
+                    {
+                        _logger.LogInformation($"{bucketUri} is an empty repository");
+                        return Enumerable.Empty<ManifestInfo>();
+                    }
 
                     var manifestsSubPath = repository.Head.Tip["bucket"]?.Mode == Mode.Directory
                         ? "bucket"
