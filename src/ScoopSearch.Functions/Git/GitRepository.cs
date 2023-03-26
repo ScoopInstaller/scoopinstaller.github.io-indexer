@@ -83,7 +83,7 @@ namespace ScoopSearch.Functions.Git
                 FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                     ? Path.Combine(Path.GetDirectoryName(GetType().Assembly.Location)!, "GitWindowsMinimal", "mingw64", "bin", "git.exe")
                     : "git",
-                Arguments = @"log --pretty=format:""commit:%H%nauthor_name:%an%nauthor_email:%ae%ndate:%ai"" --name-only",
+                Arguments = @"log --pretty=format:""commit:%H%nauthor_name:%an%nauthor_email:%ae%ndate:%ai"" --name-only --first-parent",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 WorkingDirectory = repository.Info.WorkingDirectory
@@ -131,7 +131,6 @@ namespace ScoopSearch.Functions.Git
 
                             files.Clear();
                             break;
-
                         default:
                             if (filter(currentLine))
                             {
