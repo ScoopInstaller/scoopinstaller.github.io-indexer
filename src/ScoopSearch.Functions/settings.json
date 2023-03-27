@@ -16,7 +16,8 @@
         "IgnoredBuckets": [
             // No manifests inside
             "https://github.com/lukesampson/scoop",
-            "https://github.com/frostming/scoop-action"
+            "https://github.com/frostming/scoop-action",
+            "https://github.com/rasa/scoop-directory"
         ],
 
         "IgnoredBucketsListUrl": "https://raw.githubusercontent.com/rasa/scoop-directory/master/exclude.txt",
