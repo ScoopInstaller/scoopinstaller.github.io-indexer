@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
@@ -12,79 +11,39 @@ using ScoopSearch.Functions.Data;
 
 namespace ScoopSearch.Functions.Git
 {
-    internal class GitRepository : IGitRepository
+    internal class GitRepository : IGitRepository, IDisposable
     {
-        private static readonly Signature _signature = new Signature("Merge", "merge@example.com", DateTimeOffset.Now);
-
-        private readonly ILogger<GitRepository> _logger;
-        private readonly string _repositoriesRoot;
+        private readonly Repository _repository;
         private readonly string _gitExecutable;
+        private readonly ILogger _logger;
 
-        public GitRepository(ILogger<GitRepository> logger)
-            : this(logger, Path.Combine(Path.GetTempPath(), "repositories"))
+        public GitRepository(string repositoryDirectory, string gitExecutable, ILogger logger)
         {
-        }
-
-        internal GitRepository(ILogger<GitRepository> logger, string repositoriesRoot)
-        {
+            _repository = new Repository(repositoryDirectory);
+            _gitExecutable = gitExecutable;
             _logger = logger;
-            _repositoriesRoot = repositoriesRoot;
-            _gitExecutable = GetGitExecutable();
         }
 
-        public string? DownloadRepository(Uri uri, CancellationToken cancellationToken)
+        public void Dispose() => _repository.Dispose();
+
+        public void Delete()
         {
-            var repositoryRoot = Path.Combine(_repositoriesRoot, uri.AbsolutePath.Substring(1)); // Remove leading slash
-            try
-            {
-                if (Directory.Exists(repositoryRoot))
-                {
-                    try
-                    {
-                        PullRepository(repositoryRoot, cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, $"Unable to pull repository '{uri}' to '{repositoryRoot}'");
-                        DeleteRepository(repositoryRoot);
-                        CloneRepository(uri, repositoryRoot, cancellationToken);
-                    }
-                }
-                else
-                {
-                    CloneRepository(uri, repositoryRoot, cancellationToken);
-                }
+            _logger.LogDebug("Deleting repository '{WorkingDirectory}'", _repository.Info.WorkingDirectory);
 
-                using (var repository = new Repository(repositoryRoot))
-                {
-                    if (!repository.Branches.Any())
-                    {
-                        _logger.LogError($"No remote branch found for repository '{repositoryRoot}'");
-                        return null;
-                    }
-                }
+            var workingDirectory = _repository.Info.WorkingDirectory;
+            _repository.Dispose();
 
-                return repositoryRoot;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Unable to clone repository '{uri}' to '{repositoryRoot}'");
-                DeleteRepository(repositoryRoot);
-                return null;
-            }
-        }
-
-        public void DeleteRepository(string repository)
-        {
-            var directory = new DirectoryInfo(repository);
+            var directory = new DirectoryInfo(workingDirectory);
             if (directory.Exists)
             {
                 directory.Delete(true);
             }
         }
 
-        public IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken)
+        public IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>> GetCommitsCache(Predicate<string> filter, CancellationToken cancellationToken)
         {
+            _logger.LogDebug("Computing commits cache for repository '{WorkingDirectory}'", _repository.Info.WorkingDirectory);
+
             var commitsCache = new Dictionary<string, List<CommitInfo>>();
 
             var process = new Process()
@@ -95,7 +54,7 @@ namespace ScoopSearch.Functions.Git
                     Arguments = @"log --pretty=format:""commit:%H%nauthor_name:%an%nauthor_email:%ae%ndate:%ai"" --name-only --first-parent",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    WorkingDirectory = repository.Info.WorkingDirectory
+                    WorkingDirectory = _repository.Info.WorkingDirectory
                 }
             };
 
@@ -124,7 +83,7 @@ namespace ScoopSearch.Functions.Git
                 files.Clear();
             }
 
-            while ((currentLine = process.StandardOutput.ReadLine()) != null)
+            while ((currentLine = process.StandardOutput.ReadLine()) != null && !cancellationToken.IsCancellationRequested)
             {
                 var parts = currentLine.Split(':');
                 switch (parts[0])
@@ -161,69 +120,26 @@ namespace ScoopSearch.Functions.Git
                 throw new Exception($"git returned non-zero exit code ({process.ExitCode})");
             }
 
+            _logger.LogDebug("Cache computed for repository '{WorkingDirectory}': {Count} files", _repository.Info.WorkingDirectory, commitsCache.Count);
+
             return new ReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>(commitsCache.ToDictionary(x => x.Key, x => (IReadOnlyCollection<CommitInfo>)x.Value));
         }
 
-        private void PullRepository(string repositoryRoot, CancellationToken cancellationToken)
+        public string GetBranchName()
         {
-            _logger.LogDebug($"Pulling repository '{repositoryRoot}'");
-
-            using (var repository = new Repository(repositoryRoot))
-            {
-                if (repository.Branches.Any())
-                {
-                    var remote = repository.Network.Remotes.Single();
-
-                    var fetchOptions = CreateOptions<FetchOptions>(cancellationToken);
-
-                    var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
-                    Commands.Fetch(repository, remote.Name, refSpecs, fetchOptions, null);
-                    var result = repository.MergeFetchedRefs(
-                        _signature,
-                        new MergeOptions {FastForwardStrategy = FastForwardStrategy.FastForwardOnly});
-
-                    if (result.Status == MergeStatus.Conflicts)
-                    {
-                        throw new InvalidOperationException($"Merge conflict in repository {repositoryRoot}");
-                    }
-                }
-            }
+            return _repository.Head.FriendlyName;
         }
 
-        private void CloneRepository(Uri uri, string repositoryRoot, CancellationToken cancellationToken)
+        public IEnumerable<Entry> GetEntriesFromIndex()
         {
-            _logger.LogDebug($"Cloning repository '{uri}' in '{repositoryRoot}'");
-
-            var cloneOptions = CreateOptions<CloneOptions>(cancellationToken);
-            cloneOptions.RecurseSubmodules = false;
-            Repository.Clone(uri.AbsoluteUri, repositoryRoot, cloneOptions);
+            return _repository.Index
+                .Where(x => x.Mode is Mode.Directory or Mode.NonExecutableFile)
+                .Select(x => new Entry(x.Path, x.Mode == Mode.Directory ? EntryType.Directory : EntryType.File));
         }
 
-        private T CreateOptions<T>(CancellationToken cancellationToken)
-            where T : FetchOptionsBase, new()
+        public string ReadContent(Entry entry)
         {
-            var options = new T();
-            options.OnProgress = x => !cancellationToken.IsCancellationRequested;
-            options.OnTransferProgress = x => !cancellationToken.IsCancellationRequested;
-
-            return options;
-        }
-
-        private string GetGitExecutable()
-        {
-            // Azure function hosts don't ship git so we use local packaged version
-            var executionDirectory = Path.GetDirectoryName(GetType().Assembly.Location)!;
-            var localGitExecutable = Path.Combine(executionDirectory, "GitWindowsMinimal", "mingw64", "bin", "git.exe");
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && File.Exists(localGitExecutable))
-            {
-                _logger.LogDebug($"Using git from {localGitExecutable}");
-                return localGitExecutable;
-            }
-            else
-            {
-                _logger.LogDebug($"Using git from PATH");
-                return "git";
-            }
+            return File.ReadAllText(Path.Combine(_repository.Info.WorkingDirectory, entry.Path));
         }
     }
 }

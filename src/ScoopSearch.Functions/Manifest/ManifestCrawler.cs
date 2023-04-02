@@ -14,13 +14,13 @@ namespace ScoopSearch.Functions.Manifest
 {
     internal class ManifestCrawler : IManifestCrawler
     {
-        private readonly IGitRepository _gitRepository;
+        private readonly IGitRepositoryProvider _gitRepositoryProvider;
         private readonly IKeyGenerator _keyGenerator;
         private readonly ILogger<ManifestCrawler> _logger;
 
-        public ManifestCrawler(IGitRepository gitRepository, IKeyGenerator keyGenerator, ILogger<ManifestCrawler> logger)
+        public ManifestCrawler(IGitRepositoryProvider gitRepositoryProvider, IKeyGenerator keyGenerator, ILogger<ManifestCrawler> logger)
         {
-            _gitRepository = gitRepository;
+            _gitRepositoryProvider = gitRepositoryProvider;
             _keyGenerator = keyGenerator;
             _logger = logger;
         }
@@ -29,49 +29,38 @@ namespace ScoopSearch.Functions.Manifest
         {
             var results = new List<ManifestInfo>();
 
-            var repositoryRoot = _gitRepository.DownloadRepository(bucketUri, cancellationToken);
-            if (repositoryRoot != null)
+            var repository = _gitRepositoryProvider.Download(bucketUri, cancellationToken);
+            if (repository != null)
             {
-                using (var repository = new Repository(repositoryRoot))
+                var manifestsSubPath = repository.GetEntriesFromIndex(x => x == "bucket").Any(x => x.Mode == Mode.Directory)
+                    ? "bucket"
+                    : string.Empty;
+                var manifests = repository.GetEntriesFromIndex(x => IsManifestFile(x, manifestsSubPath));
+                bool IsManifestPredicate(string filePath) => IsManifestFile(filePath, manifestsSubPath);
+                var commitCache = repository.GetCommitsCache(IsManifestPredicate, cancellationToken);
+
+                foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
                 {
-                    var repositoryRemote = repository.Network.Remotes.Single().Url;
-                    var branchName = repository.Head.FriendlyName;
-                    if (repository.Head.Tip == null)
+                    var commit = commitCache[entry.Path].First();
+
+                    var manifestMetadata = new ManifestMetadata(
+                        bucketUri.AbsoluteUri,
+                        repository.GetBranchName(),
+                        entry.Path,
+                        commit.AuthorName,
+                        commit.AuthorEmail,
+                        commit.Date,
+                        commit.Sha);
+
+                    var manifestData = repository.ReadContent(entry);
+                    var manifest = CreateManifest(manifestData, manifestMetadata);
+                    if (manifest != null)
                     {
-                        _logger.LogInformation($"{bucketUri} is an empty repository");
-                        return Enumerable.Empty<ManifestInfo>();
-                    }
-
-                    var manifestsSubPath = repository.Head.Tip["bucket"]?.Mode == Mode.Directory
-                        ? "bucket"
-                        : string.Empty;
-                    var manifests = repository.Index.Where(x => IsManifestFile(x.Path, manifestsSubPath));
-                    bool IsManifestPredicate(string filePath) => IsManifestFile(filePath, manifestsSubPath);
-                    var commitCache = _gitRepository.GetCommitsCache(repository, IsManifestPredicate, cancellationToken);
-
-                    foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
-                    {
-                        var commit = commitCache[entry.Path].First();
-
-                        var manifestMetadata = new ManifestMetadata(
-                            repositoryRemote,
-                            branchName,
-                            entry.Path,
-                            commit.AuthorName,
-                            commit.AuthorEmail,
-                            commit.Date,
-                            commit.Sha);
-
-                        var manifestData = File.ReadAllText(Path.Combine(repository.Info.WorkingDirectory, entry.Path));
-                        var manifest = CreateManifest(manifestData, manifestMetadata);
-                        if (manifest != null)
-                        {
-                            results.Add(manifest);
-                        }
+                        results.Add(manifest);
                     }
                 }
 
-                _gitRepository.DeleteRepository(repositoryRoot);
+                repository.Delete();
             }
 
             return results;
