@@ -12,6 +12,6 @@ namespace ScoopSearch.Functions.Git
 
         void DeleteRepository(string repository);
 
-        IDictionary<string, CommitInfo> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken);
+        IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>> GetCommitsCache(Repository repository, Predicate<string> filter, CancellationToken cancellationToken);
     }
 }

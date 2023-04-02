@@ -51,7 +51,7 @@ namespace ScoopSearch.Functions.Manifest
 
                     foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
                     {
-                        var commit = commitCache[entry.Path];
+                        var commit = commitCache[entry.Path].First();
 
                         var manifestMetadata = new ManifestMetadata(
                             repositoryRemote,
