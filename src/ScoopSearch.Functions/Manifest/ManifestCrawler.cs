@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading;
-using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ScoopSearch.Functions.Data;
@@ -32,31 +31,43 @@ namespace ScoopSearch.Functions.Manifest
             var repository = _gitRepositoryProvider.Download(bucketUri, cancellationToken);
             if (repository != null)
             {
-                var manifestsSubPath = repository.GetEntriesFromIndex(x => x == "bucket").Any(x => x.Mode == Mode.Directory)
+                _logger.LogDebug("Generating manifest infos from repository '{Repository}'", bucketUri);
+
+                var entries = repository.GetEntriesFromIndex().ToArray();
+                var manifestsSubPath = entries.Any(_ => _ is { Type: EntryType.Directory, Path: "bucket" })
                     ? "bucket"
                     : string.Empty;
-                var manifests = repository.GetEntriesFromIndex(x => IsManifestFile(x, manifestsSubPath));
-                bool IsManifestPredicate(string filePath) => IsManifestFile(filePath, manifestsSubPath);
+
+                bool IsManifestPredicate(string filePath) => Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true
+                                                             && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
+
                 var commitCache = repository.GetCommitsCache(IsManifestPredicate, cancellationToken);
 
-                foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
+                foreach (var entry in entries
+                             .Where(x => x.Type == EntryType.File && IsManifestPredicate(x.Path))
+                             .TakeWhile(x => !cancellationToken.IsCancellationRequested))
                 {
-                    var commit = commitCache[entry.Path].First();
-
-                    var manifestMetadata = new ManifestMetadata(
-                        bucketUri.AbsoluteUri,
-                        repository.GetBranchName(),
-                        entry.Path,
-                        commit.AuthorName,
-                        commit.AuthorEmail,
-                        commit.Date,
-                        commit.Sha);
-
-                    var manifestData = repository.ReadContent(entry);
-                    var manifest = CreateManifest(manifestData, manifestMetadata);
-                    if (manifest != null)
+                    if (commitCache.TryGetValue(entry.Path, out var commits) && commits.FirstOrDefault() is { } commit)
                     {
-                        results.Add(manifest);
+                        var manifestMetadata = new ManifestMetadata(
+                            bucketUri.AbsoluteUri,
+                            repository.GetBranchName(),
+                            entry.Path,
+                            commit.AuthorName,
+                            commit.AuthorEmail,
+                            commit.Date,
+                            commit.Sha);
+
+                        var manifestData = repository.ReadContent(entry);
+                        var manifest = CreateManifest(manifestData, manifestMetadata);
+                        if (manifest != null)
+                        {
+                            results.Add(manifest);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", entry.Path, bucketUri);
                     }
                 }
 
@@ -64,12 +75,6 @@ namespace ScoopSearch.Functions.Manifest
             }
 
             return results;
-        }
-
-        private bool IsManifestFile(string filePath, string manifestsSubPath)
-        {
-            return Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true
-                   && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
         }
 
         private ManifestInfo? CreateManifest(string contentJson, ManifestMetadata metadata)
@@ -87,7 +92,7 @@ namespace ScoopSearch.Functions.Manifest
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex, $"Unable to parse manifest {metadata.FilePath} in {metadata.Repository}.");
+                _logger.LogWarning(ex, "Unable to parse manifest '{Manifest}' from '{Repository}'", metadata.FilePath, metadata.Repository);
             }
 
             return null;
