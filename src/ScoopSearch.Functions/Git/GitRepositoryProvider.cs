@@ -53,15 +53,9 @@ namespace ScoopSearch.Functions.Git
 
                 using (var repository = new Repository(repositoryDirectory))
                 {
-                    if (!repository.Branches.Any())
-                    {
-                        _logger.LogError("No remote branch found for repository '{RepositoryDirectory}'", repositoryDirectory);
-                        return null;
-                    }
-
                     if (repository.Head.Tip == null)
                     {
-                        _logger.LogError("Empty repository '{RepositoryDirectory}'", repositoryDirectory);
+                        _logger.LogError("No valid branch found in '{RepositoryDirectory}'", repositoryDirectory);
                         return null;
                     }
                 }

@@ -126,6 +126,7 @@ public class GitRepositoryFactoryTests : IDisposable
     {
         // Arrange
         var repositoryUri = new Uri(Constants.EmptyTestRepositoryUri);
+        var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
 
         // Act
         var result = _sut.Download(repositoryUri, CancellationToken.None);
@@ -133,6 +134,6 @@ public class GitRepositoryFactoryTests : IDisposable
         // Assert
         result.Should().BeNull();
         _logger.Should()
-            .Log(LogLevel.Error, _ => _.StartsWith("No remote branch found for repository "));
+            .Log(LogLevel.Error, $"No valid branch found in '{expectedRepositoryDirectory}'");
     }
 }
