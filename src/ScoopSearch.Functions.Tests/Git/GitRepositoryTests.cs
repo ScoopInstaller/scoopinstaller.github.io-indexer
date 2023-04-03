@@ -66,6 +66,17 @@ public class GitRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void Dispose_Succeeds()
+    {
+        // Arrange
+        var repositoryUri = new Uri(Constants.TestRepositoryUri);
+        var repository = _provider.Download(repositoryUri, CancellationToken.None)!;
+
+        // Act + Assert
+        repository.Should().BeAssignableTo<IDisposable>().Subject.Dispose();
+    }
+
+    [Fact]
     public void GetItemsFromIndex_ReturnsEntries()
     {
         // Arrange
