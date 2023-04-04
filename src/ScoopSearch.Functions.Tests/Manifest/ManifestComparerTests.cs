@@ -1,7 +1,7 @@
 using FluentAssertions;
-using Newtonsoft.Json;
 using ScoopSearch.Functions.Data;
 using ScoopSearch.Functions.Manifest;
+using ScoopSearch.Functions.Tests.Helpers;
 
 namespace ScoopSearch.Functions.Tests.Manifest;
 
@@ -28,24 +28,24 @@ public class ManifestComparerTests
     {
         // manifestInfo1, manifestInfo2, expectedIdEquals, expectedExactEquals
         yield return new object?[] { null, null, true, true };
-        yield return new object?[] { null, Create("foo", "sha", 123), false, false };
-        yield return new object?[] { Create("foo", "sha", 123), null, false, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("foo", "sha", 123), true, true };
-        yield return new object?[] { Create("foo", "sha", 123), Create("foo", "sha", 321), true, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("foo", "ahs", 123), true, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("foo", "ahs", 321), true, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("bar", "sha", 123), false, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("bar", "sha", 321), false, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("bar", "ahs", 123), false, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("bar", "ahs", 321), false, false };
-        yield return new object?[] { Create("foo", "sha", 123), Create("foo", "sha", 123), true, true };
-        yield return new object?[] { Create("foo", "sha", 321), Create("foo", "sha", 123), true, false };
-        yield return new object?[] { Create("foo", "ahs", 123), Create("foo", "sha", 123), true, false };
-        yield return new object?[] { Create("foo", "ahs", 321), Create("foo", "sha", 123), true, false };
-        yield return new object?[] { Create("bar", "sha", 123), Create("foo", "sha", 123), false, false };
-        yield return new object?[] { Create("bar", "sha", 321), Create("foo", "sha", 123), false, false };
-        yield return new object?[] { Create("bar", "ahs", 123), Create("foo", "sha", 123), false, false };
-        yield return new object?[] { Create("bar", "ahs", 321), Create("foo", "sha", 123), false, false };
+        yield return new object?[] { null, ("foo", "sha", 123).ToManifestInfo(), false, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), null, false, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), true, true };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("foo", "sha", 321).ToManifestInfo(), true, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("foo", "ahs", 123).ToManifestInfo(), true, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("foo", "ahs", 321).ToManifestInfo(), true, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("bar", "sha", 123).ToManifestInfo(), false, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("bar", "sha", 321).ToManifestInfo(), false, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("bar", "ahs", 123).ToManifestInfo(), false, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("bar", "ahs", 321).ToManifestInfo(), false, false };
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), true, true };
+        yield return new object?[] { ("foo", "sha", 321).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), true, false };
+        yield return new object?[] { ("foo", "ahs", 123).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), true, false };
+        yield return new object?[] { ("foo", "ahs", 321).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), true, false };
+        yield return new object?[] { ("bar", "sha", 123).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), false, false };
+        yield return new object?[] { ("bar", "sha", 321).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), false, false };
+        yield return new object?[] { ("bar", "ahs", 123).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), false, false };
+        yield return new object?[] { ("bar", "ahs", 321).ToManifestInfo(), ("foo", "sha", 123).ToManifestInfo(), false, false };
     }
 
     [Theory]
@@ -68,18 +68,13 @@ public class ManifestComparerTests
     public static IEnumerable<object?[]> GetManifestsInfoGetHashCodeTestCases()
     {
         // manifestInfo, idHashCode, exactHashCode
-        yield return new object?[] { Create("foo", "sha", 123), "foo".GetHashCode(), HashCode.Combine("foo", "sha", 123) };
-        yield return new object?[] { Create("foo", "sha", 321), "foo".GetHashCode(), HashCode.Combine("foo", "sha", 321) };
-        yield return new object?[] { Create("foo", "ahs", 123), "foo".GetHashCode(), HashCode.Combine("foo", "ahs", 123) };
-        yield return new object?[] { Create("foo", "ahs", 321), "foo".GetHashCode(), HashCode.Combine("foo", "ahs", 321) };
-        yield return new object?[] { Create("bar", "sha", 123), "bar".GetHashCode(), HashCode.Combine("bar", "sha", 123) };
-        yield return new object?[] { Create("bar", "sha", 321), "bar".GetHashCode(), HashCode.Combine("bar", "sha", 321) };
-        yield return new object?[] { Create("bar", "ahs", 123), "bar".GetHashCode(), HashCode.Combine("bar", "ahs", 123) };
-        yield return new object?[] { Create("bar", "ahs", 321), "bar".GetHashCode(), HashCode.Combine("bar", "ahs", 321) };
-    }
-
-    private static ManifestInfo Create(string id, string sha, int repositoryStars)
-    {
-        return JsonConvert.DeserializeObject<ManifestInfo>(@$"{{ ""Id"": ""{id}"", ""Metadata"": {{ ""Sha"": ""{sha}"", ""RepositoryStars"": {repositoryStars} }} }}");
+        yield return new object?[] { ("foo", "sha", 123).ToManifestInfo(), "foo".GetHashCode(), HashCode.Combine("foo", "sha", 123) };
+        yield return new object?[] { ("foo", "sha", 321).ToManifestInfo(), "foo".GetHashCode(), HashCode.Combine("foo", "sha", 321) };
+        yield return new object?[] { ("foo", "ahs", 123).ToManifestInfo(), "foo".GetHashCode(), HashCode.Combine("foo", "ahs", 123) };
+        yield return new object?[] { ("foo", "ahs", 321).ToManifestInfo(), "foo".GetHashCode(), HashCode.Combine("foo", "ahs", 321) };
+        yield return new object?[] { ("bar", "sha", 123).ToManifestInfo(), "bar".GetHashCode(), HashCode.Combine("bar", "sha", 123) };
+        yield return new object?[] { ("bar", "sha", 321).ToManifestInfo(), "bar".GetHashCode(), HashCode.Combine("bar", "sha", 321) };
+        yield return new object?[] { ("bar", "ahs", 123).ToManifestInfo(), "bar".GetHashCode(), HashCode.Combine("bar", "ahs", 123) };
+        yield return new object?[] { ("bar", "ahs", 321).ToManifestInfo(), "bar".GetHashCode(), HashCode.Combine("bar", "ahs", 321) };
     }
 }
