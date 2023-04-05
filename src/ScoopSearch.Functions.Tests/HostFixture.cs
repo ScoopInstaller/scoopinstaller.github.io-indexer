@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using ScoopSearch.Functions.Tests.Helpers;
@@ -16,7 +15,6 @@ namespace ScoopSearch.Functions.Tests;
 public class HostFixture : IDisposable
 {
     private const LogLevel MinimumLogLevel = LogLevel.Debug;
-    private const bool StartupLogging = false;
 
     private readonly Lazy<IHost> _lazyHost;
 
@@ -49,15 +47,10 @@ public class HostFixture : IDisposable
             throw new InvalidOperationException("{nameof(Configure)} must be called before {nameof(CreateHost)}");
         }
 
-        ILoggerFactory startupLoggerFactory = NullLoggerFactory.Instance;
-        if (StartupLogging)
-        {
-            var loggerFactoryMock = new Mock<ILoggerFactory>();
-            loggerFactoryMock
-                .Setup(_ => _.CreateLogger(It.IsAny<string>()))
-                .Returns<string>(loggerName => new XUnitLogger(loggerName, _testOutputHelper));
-            startupLoggerFactory = loggerFactoryMock.Object;
-        }
+        var startupLoggerFactoryMock = new Mock<ILoggerFactory>();
+        startupLoggerFactoryMock
+            .Setup(_ => _.CreateLogger(It.IsAny<string>()))
+            .Returns<string>(loggerName => new XUnitLogger(loggerName, _testOutputHelper));
 
         var executionContextOptions = ServiceDescriptor.Singleton<IOptions<ExecutionContextOptions>>(
             serviceProvider =>
@@ -69,7 +62,7 @@ public class HostFixture : IDisposable
 
         var host = new HostBuilder()
             .ConfigureWebJobs(builder => builder
-                .UseWebJobsStartup(typeof(Startup), new WebJobsBuilderContext(), startupLoggerFactory))
+                .UseWebJobsStartup(typeof(Startup), new WebJobsBuilderContext(), startupLoggerFactoryMock.Object))
 
             .ConfigureServices(services => services
                 .Replace(executionContextOptions))
