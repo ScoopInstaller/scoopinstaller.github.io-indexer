@@ -21,22 +21,22 @@ public static class LoggerMockAssertionsExtensions
             _mock = logger.Mock;
         }
 
-        public AndConstraint<LoggerMockAssertions<TLogger>> Log(LogLevel logLevel, string message)
+        public AndConstraint<LoggerMockAssertions<TLogger>> Log(LogLevel logLevel, string message, Times? times = null)
         {
-            _mock.VerifyLog(logLevel, message);
+            _mock.VerifyLog(logLevel, message, times);
             return new AndConstraint<LoggerMockAssertions<TLogger>>(this);
         }
 
-        public AndConstraint<LoggerMockAssertions<TLogger>> Log(LogLevel logLevel, Predicate<string> message)
+        public AndConstraint<LoggerMockAssertions<TLogger>> Log(LogLevel logLevel, Predicate<string> message, Times? times = null)
         {
-            _mock.VerifyLog(logLevel, message);
+            _mock.VerifyLog(logLevel, message, times);
             return new AndConstraint<LoggerMockAssertions<TLogger>>(this);
         }
 
-        public AndConstraint<LoggerMockAssertions<TLogger>> Log<TException>(LogLevel logLevel, string message)
+        public AndConstraint<LoggerMockAssertions<TLogger>> Log<TException>(LogLevel logLevel, string message, Times? times = null)
             where TException : Exception
         {
-            _mock.VerifyLog<TLogger, TException>(logLevel, message);
+            _mock.VerifyLog<TLogger, TException>(logLevel, message, times);
             return new AndConstraint<LoggerMockAssertions<TLogger>>(this);
         }
 
