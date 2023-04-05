@@ -34,8 +34,15 @@ namespace ScoopSearch.Functions.Git
             _repository.Dispose();
 
             var directory = new DirectoryInfo(workingDirectory);
-            if (directory.Exists)
+            if (directory.Exists) 
             {
+                directory.Attributes = FileAttributes.Normal;
+
+                foreach (var info in directory.GetFileSystemInfos("*", SearchOption.AllDirectories))
+                {
+                    info.Attributes = FileAttributes.Normal;
+                }
+
                 directory.Delete(true);
             }
         }
