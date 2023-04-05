@@ -33,27 +33,6 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
-
-  <!-- Store Git-Windows-Minimal files in the output directory -->
-  <PropertyGroup>
-    <GitWindowsMinimalVersion>2.40.0</GitWindowsMinimalVersion>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Git-Windows-Minimal" Version="$(GitWindowsMinimalVersion)" GeneratePathProperty="true" />
-  </ItemGroup>
-  <Target Name="CopyGitWindowsMinimalFilesOnBuild" AfterTargets="Build">
-    <ItemGroup>
-      <GitWindowsMinimalFiles Include="$(PkgGit-Windows-Minimal)/tools/**/*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(GitWindowsMinimalFiles)" DestinationFiles="$(OutDir)/GitWindowsMinimal/%(RecursiveDir)/%(Filename)%(Extension)" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="CopyGitWindowsMinimalFilesOnPublish" AfterTargets="Publish">
-    <ItemGroup>
-      <FilesToCopy Include="$(OutDir)/GitWindowsMinimal/**/*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(PublishDir)/bin/GitWindowsMinimal/%(RecursiveDir)" />
-  </Target>
-
   <ItemGroup>
     <InternalsVisibleTo Include="ScoopSearch.Functions.Tests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />

@@ -155,14 +155,6 @@ namespace ScoopSearch.Functions.Git
                 _logger.LogInformation(ex, "Git cannot be find in the path");
             }
 
-            var executionDirectory = Path.GetDirectoryName(GetType().Assembly.Location)!;
-            var localGitExecutable = Path.Combine(executionDirectory, "GitWindowsMinimal", "mingw64", "bin", "git.exe");
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && File.Exists(localGitExecutable))
-            {
-                _logger.LogDebug("Using git from {LocalGitExecutable}", localGitExecutable);
-                return localGitExecutable;
-            }
-
             throw new Exception("Unable to find git executable");
         }
     }
