@@ -89,7 +89,7 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
-        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(1));
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(0));
 
         // Act
         var result = _sut.Download(repositoryUri, cts.Token);

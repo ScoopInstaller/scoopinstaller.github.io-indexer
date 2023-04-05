@@ -144,7 +144,7 @@ namespace ScoopSearch.Functions.Git
                     process.WaitForExit();
                     if (process.ExitCode == 0)
                     {
-                        var version = process.StandardOutput.ReadToEnd();
+                        var version = process.StandardOutput.ReadLine();
                         _logger.LogDebug("Using git from PATH ({GitVersion})", version);
                         return process.StartInfo.FileName;
                     }
