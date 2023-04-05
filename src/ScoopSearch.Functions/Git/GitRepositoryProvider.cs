@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -125,7 +126,35 @@ namespace ScoopSearch.Functions.Git
 
         private string GetGitExecutable()
         {
-            // Azure function hosts don't ship git so we use local packaged version
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "git",
+                    Arguments = "--version",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true
+                }
+            };
+
+            try
+            {
+                if (process.Start())
+                {
+                    process.WaitForExit();
+                    if (process.ExitCode == 0)
+                    {
+                        var version = process.StandardOutput.ReadToEnd();
+                        _logger.LogDebug("Using git from PATH ({GitVersion})", version);
+                        return process.StartInfo.FileName;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(ex, "Git cannot be find in the path");
+            }
+
             var executionDirectory = Path.GetDirectoryName(GetType().Assembly.Location)!;
             var localGitExecutable = Path.Combine(executionDirectory, "GitWindowsMinimal", "mingw64", "bin", "git.exe");
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && File.Exists(localGitExecutable))
@@ -133,11 +162,8 @@ namespace ScoopSearch.Functions.Git
                 _logger.LogDebug("Using git from {LocalGitExecutable}", localGitExecutable);
                 return localGitExecutable;
             }
-            else
-            {
-                _logger.LogDebug($"Using git from PATH");
-                return "git";
-            }
+
+            throw new Exception("Unable to find git executable");
         }
     }
 }
