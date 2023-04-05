@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Castle.Core.AsyncInterceptor" Version="2.0.0" />
     <PackageReference Include="CsvHelper" Version="27.2.1" />
-    <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
+    <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0182" />
     <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
     <PackageReference Include="Microsoft.Azure.Search" Version="10.1.0" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="5.0.0" />
@@ -43,7 +43,7 @@
   </ItemGroup>
   <Target Name="CopyGitWindowsMinimalFilesOnBuild" AfterTargets="Build">
     <ItemGroup>
-      <GitWindowsMinimalFiles Include="$(PkgGit-Windows-Minimal)/tools/**/*.*"/>
+      <GitWindowsMinimalFiles Include="$(PkgGit-Windows-Minimal)/tools/**/*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(GitWindowsMinimalFiles)" DestinationFiles="$(OutDir)/GitWindowsMinimal/%(RecursiveDir)/%(Filename)%(Extension)" SkipUnchangedFiles="true" />
   </Target>
@@ -53,4 +53,9 @@
     </ItemGroup>
     <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(PublishDir)/bin/GitWindowsMinimal/%(RecursiveDir)" />
   </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ScoopSearch.Functions.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
 </Project>

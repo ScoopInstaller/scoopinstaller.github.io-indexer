@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading;
-using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ScoopSearch.Functions.Data;
@@ -14,13 +13,13 @@ namespace ScoopSearch.Functions.Manifest
 {
     internal class ManifestCrawler : IManifestCrawler
     {
-        private readonly IGitRepository _gitRepository;
+        private readonly IGitRepositoryProvider _gitRepositoryProvider;
         private readonly IKeyGenerator _keyGenerator;
         private readonly ILogger<ManifestCrawler> _logger;
 
-        public ManifestCrawler(IGitRepository gitRepository, IKeyGenerator keyGenerator, ILogger<ManifestCrawler> logger)
+        public ManifestCrawler(IGitRepositoryProvider gitRepositoryProvider, IKeyGenerator keyGenerator, ILogger<ManifestCrawler> logger)
         {
-            _gitRepository = gitRepository;
+            _gitRepositoryProvider = gitRepositoryProvider;
             _keyGenerator = keyGenerator;
             _logger = logger;
         }
@@ -29,58 +28,53 @@ namespace ScoopSearch.Functions.Manifest
         {
             var results = new List<ManifestInfo>();
 
-            var repositoryRoot = _gitRepository.DownloadRepository(bucketUri, cancellationToken);
-            if (repositoryRoot != null)
+            var repository = _gitRepositoryProvider.Download(bucketUri, cancellationToken);
+            if (repository != null)
             {
-                using (var repository = new Repository(repositoryRoot))
+                _logger.LogDebug("Generating manifest infos from repository '{Repository}'", bucketUri);
+
+                var entries = repository.GetEntriesFromIndex().ToArray();
+                var manifestsSubPath = entries.Any(_ => _ is { Type: EntryType.Directory, Path: "bucket" })
+                    ? "bucket"
+                    : string.Empty;
+
+                bool IsManifestPredicate(string filePath) => Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true
+                                                             && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
+
+                var commitCache = repository.GetCommitsCache(IsManifestPredicate, cancellationToken);
+
+                foreach (var entry in entries
+                             .Where(x => x.Type == EntryType.File && IsManifestPredicate(x.Path))
+                             .TakeWhile(x => !cancellationToken.IsCancellationRequested))
                 {
-                    var repositoryRemote = repository.Network.Remotes.Single().Url;
-                    var branchName = repository.Head.FriendlyName;
-                    if (repository.Head.Tip == null)
+                    if (commitCache.TryGetValue(entry.Path, out var commits) && commits.FirstOrDefault() is { } commit)
                     {
-                        _logger.LogInformation($"{bucketUri} is an empty repository");
-                        return Enumerable.Empty<ManifestInfo>();
-                    }
-
-                    var manifestsSubPath = repository.Head.Tip["bucket"]?.Mode == Mode.Directory
-                        ? "bucket"
-                        : string.Empty;
-                    var manifests = repository.Index.Where(x => IsManifestFile(x.Path, manifestsSubPath));
-                    bool IsManifestPredicate(string filePath) => IsManifestFile(filePath, manifestsSubPath);
-                    var commitCache = _gitRepository.GetCommitsCache(repository, IsManifestPredicate, cancellationToken);
-
-                    foreach (var entry in manifests.TakeWhile(x => !cancellationToken.IsCancellationRequested))
-                    {
-                        var commit = commitCache[entry.Path];
-
                         var manifestMetadata = new ManifestMetadata(
-                            repositoryRemote,
-                            branchName,
+                            bucketUri.AbsoluteUri,
+                            repository.GetBranchName(),
                             entry.Path,
                             commit.AuthorName,
                             commit.AuthorEmail,
                             commit.Date,
                             commit.Sha);
 
-                        var manifestData = File.ReadAllText(Path.Combine(repository.Info.WorkingDirectory, entry.Path));
+                        var manifestData = repository.ReadContent(entry);
                         var manifest = CreateManifest(manifestData, manifestMetadata);
                         if (manifest != null)
                         {
                             results.Add(manifest);
                         }
                     }
+                    else
+                    {
+                        _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", entry.Path, bucketUri);
+                    }
                 }
 
-                _gitRepository.DeleteRepository(repositoryRoot);
+                repository.Delete();
             }
 
             return results;
-        }
-
-        private bool IsManifestFile(string filePath, string manifestsSubPath)
-        {
-            return Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true
-                   && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
         }
 
         private ManifestInfo? CreateManifest(string contentJson, ManifestMetadata metadata)
@@ -98,7 +92,7 @@ namespace ScoopSearch.Functions.Manifest
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex, $"Unable to parse manifest {metadata.FilePath} in {metadata.Repository}.");
+                _logger.LogWarning(ex, "Unable to parse manifest '{Manifest}' from '{Repository}'", metadata.FilePath, metadata.Repository);
             }
 
             return null;

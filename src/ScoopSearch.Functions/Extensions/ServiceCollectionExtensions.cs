@@ -1,0 +1,66 @@
+using System;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Polly;
+using ScoopSearch.Functions.Configuration;
+
+namespace ScoopSearch.Functions;
+
+public static class ServiceCollectionExtensions
+{
+    public static IHttpClientBuilder AddHttpClient(this IServiceCollection services, string name, bool allowAutoRedirect)
+    {
+        return services
+            .AddHttpClient(name, (serviceProvider, client) =>
+            {
+                // GitHub requires a specific Accept header to search repositories by topic
+                // https://developer.github.com/v3/search/#search-repositories
+                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.mercy-preview+json");
+
+                // Github requires a user-agent
+                var assemblyName = typeof(Extensions).Assembly.GetName();
+                client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(
+                    assemblyName.Name!,
+                    assemblyName.Version!.ToString()));
+
+                // Authentication to avoid API rate limitation
+                var gitHubOptions = serviceProvider.GetRequiredService<IOptions<GitHubOptions>>();
+                if (gitHubOptions.Value.Token != null)
+                {
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
+                }
+                else
+                {
+                    serviceProvider.GetRequiredService<ILogger<HttpClient>>().LogWarning($"GitHub token not set for HttpClient {name}");
+                }
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = allowAutoRedirect })
+            .AddTransientHttpErrorPolicy(builder => builder.WaitAndRetryAsync(4, attempt => TimeSpan.FromSeconds(Math.Min(1, (attempt - 1) * 5))))
+            .AddPolicyHandler((provider, _) =>
+            {
+                return Policy<HttpResponseMessage>
+                    .HandleResult(result => result.IsSuccessStatusCode == false && result.StatusCode == HttpStatusCode.Forbidden)
+                    .WaitAndRetryAsync(4, (_, result, _) =>
+                    {
+                        if (result.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+                        {
+                            var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
+                            var delay = rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
+                            provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
+                                $"Received GitHub rate-limit response. Waiting for {delay} seconds before retrying.");
+
+                            return delay;
+                        }
+
+                        throw new NotSupportedException("Unknown forbidden error");
+                    }, (_, _, _, _) => Task.CompletedTask);
+            });
+    }
+}
+
