@@ -18,8 +18,11 @@ public class KeyGeneratorTests
     [Fact]
     public void Dispose_Succeeds()
     {
-        // Arrange + Act + Assert
-        _sut.Dispose();
+        // Arrange + Act
+        Action act = () => _sut.Dispose();
+
+        // Assert
+        act.Should().NotThrow();
     }
 
     [Fact]

@@ -71,7 +71,7 @@ namespace ScoopSearch.Functions.Data
         public ManifestMetadata Metadata { get; private set; } = null!;
 
         [OnDeserialized]
-        public void OnDeserialized(StreamingContext context)
+        internal void OnDeserialized(StreamingContext context)
         {
             if (context.Context is (string key, ManifestMetadata manifestMetadata))
             {

@@ -34,7 +34,7 @@ namespace ScoopSearch.Functions.Git
             _repository.Dispose();
 
             var directory = new DirectoryInfo(workingDirectory);
-            if (directory.Exists) 
+            if (directory.Exists)
             {
                 directory.Attributes = FileAttributes.Normal;
 
@@ -124,7 +124,7 @@ namespace ScoopSearch.Functions.Git
             process.WaitForExit();
             if (process.ExitCode != 0)
             {
-                throw new Exception($"git returned non-zero exit code ({process.ExitCode})");
+                throw new InvalidOperationException($"git returned non-zero exit code ({process.ExitCode})");
             }
 
             _logger.LogDebug("Cache computed for repository '{WorkingDirectory}': {Count} files", _repository.Info.WorkingDirectory, commitsCache.Count);
