@@ -155,7 +155,7 @@ namespace ScoopSearch.Functions.Git
                 _logger.LogInformation(ex, "Git cannot be find in the path");
             }
 
-            throw new Exception("Unable to find git executable");
+            throw new InvalidOperationException("Unable to find git executable");
         }
     }
 }
