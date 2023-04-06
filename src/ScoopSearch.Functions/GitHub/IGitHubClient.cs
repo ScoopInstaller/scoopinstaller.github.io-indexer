@@ -14,5 +14,5 @@ public interface IGitHubClient
 
     Task<GitHubRepo?> GetRepoAsync(Uri uri, CancellationToken cancellationToken);
 
-    Task<GitHubSearchResults> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken);
+    Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken);
 }

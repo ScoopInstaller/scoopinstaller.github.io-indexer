@@ -144,7 +144,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
 
         // Assert
         result.Should().NotBeNull();
-        result.TotalCount.Should()
+        result!.TotalCount.Should()
             .BeGreaterThan(0, "because there should be at least 1 result")
             .And.BeLessThan(900, "because there should be less than 900 results. If it returns more than 900, the date condition should be updated");
         result.Items.Should().NotBeEmpty();

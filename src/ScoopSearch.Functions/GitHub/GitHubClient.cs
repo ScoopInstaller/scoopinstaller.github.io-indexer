@@ -59,7 +59,7 @@ internal class GitHubClient : IGitHubClient
             }, cancellationToken);
     }
 
-    public async Task<GitHubSearchResults> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
+    public async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
     {
         return await GetAsStringAsync(searchUri, cancellationToken)
             .ContinueWith(task => JsonConvert.DeserializeObject<GitHubSearchResults>(task.Result), cancellationToken);

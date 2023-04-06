@@ -19,7 +19,7 @@ namespace ScoopSearch.Functions.Indexer
         public AzureSearchIndexer(AzureSearchIndex azureSearchIndex, IOptions<AzureSearchOptions> options)
         {
             var client = new SearchServiceClient(options.Value.ServiceName, new SearchCredentials(options.Value.AdminApiKey));
-            azureSearchIndex.CreateIndexIfRequired(client, options.Value.IndexName);
+            azureSearchIndex.CreateIndexIfRequired(client, options.Value.IndexName!);
             _index = client.Indexes.GetClient(options.Value.IndexName);
         }
 

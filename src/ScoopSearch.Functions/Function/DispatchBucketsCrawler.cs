@@ -82,9 +82,9 @@ namespace ScoopSearch.Functions.Function
         private async Task<HashSet<Uri>> RetrieveOfficialBucketsAsync(CancellationToken cancellationToken)
         {
             var contentJson = await _gitHubClient.GetAsStringAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken);
-            var officialBuckets = JsonConvert.DeserializeObject<Dictionary<string, string>>(contentJson).Values;
+            var officialBuckets = JsonConvert.DeserializeObject<Dictionary<string, string>>(contentJson)?.Values;
 
-            return officialBuckets.Select(x => new Uri(x)).ToHashSet();
+            return officialBuckets?.Select(x => new Uri(x)).ToHashSet() ?? new HashSet<Uri>();
         }
 
         private async Task<HashSet<Uri>> RetrieveBucketsAsync(Uri bucketsList, ILogger logger, bool followRedirects, CancellationToken cancellationToken)
@@ -101,6 +101,11 @@ namespace ScoopSearch.Functions.Function
                     while (csv.Read())
                     {
                         var uri = csv.GetField<string>("url");
+                        if (uri == null)
+                        {
+                            continue;
+                        }
+
                         if (uri.EndsWith(".git"))
                         {
                             uri = uri.Substring(0, uri.Length - 4);
@@ -148,15 +153,18 @@ namespace ScoopSearch.Functions.Function
                     // First query to retrieve total_count and first results
                     var firstSearchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page=1&sort=updated");
                     var firstResults = await _gitHubClient.GetSearchResultsAsync(firstSearchUri, cancellationToken);
-                    firstResults.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
-
-                    // Using TotalCount, parallelize the remaining queries for all the remaining pages of results
-                    var totalPages = (int)Math.Ceiling(firstResults.TotalCount / (double)ResultsPerPage);
-                    for (int page = 2; page <= totalPages; page++)
+                    if (firstResults != null)
                     {
-                        var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}&sort=updated");
-                        var results = await _gitHubClient.GetSearchResultsAsync(searchUri, cancellationToken);
-                        results.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
+                        firstResults.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
+
+                        // Using TotalCount, parallelize the remaining queries for all the remaining pages of results
+                        var totalPages = (int)Math.Ceiling(firstResults.TotalCount / (double)ResultsPerPage);
+                        for (int page = 2; page <= totalPages; page++)
+                        {
+                            var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}&sort=updated");
+                            var results = await _gitHubClient.GetSearchResultsAsync(searchUri, cancellationToken);
+                            results?.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
+                        }
                     }
                 });
 

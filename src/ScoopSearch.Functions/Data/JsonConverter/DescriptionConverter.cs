@@ -7,9 +7,9 @@ namespace ScoopSearch.Functions.Data.JsonConverter
     {
         public override bool CanWrite => false;
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => throw new NotImplementedException();
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.String)
             {
@@ -22,7 +22,7 @@ namespace ScoopSearch.Functions.Data.JsonConverter
                 while (reader.TokenType != JsonToken.EndArray)
                 {
                     reader.Read();
-                    description += string.IsNullOrEmpty((string)reader.Value) ? Environment.NewLine : reader.Value;
+                    description += string.IsNullOrEmpty((string?)reader.Value) ? Environment.NewLine : reader.Value;
                 }
             }
 

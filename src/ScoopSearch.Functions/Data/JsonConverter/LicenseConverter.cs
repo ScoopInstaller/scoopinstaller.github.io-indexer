@@ -8,9 +8,9 @@ namespace ScoopSearch.Functions.Data.JsonConverter
     {
         public override bool CanWrite => false;
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => throw new NotImplementedException();
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.String)
             {
@@ -18,11 +18,11 @@ namespace ScoopSearch.Functions.Data.JsonConverter
             }
 
             JObject jObject = JObject.Load(reader);
-            if (jObject.TryGetValue("identifier", out JToken identifier))
+            if (jObject.TryGetValue("identifier", out JToken? identifier))
             {
                 return identifier.ToString();
             }
-            else if (jObject.TryGetValue("url", out JToken value))
+            else if (jObject.TryGetValue("url", out JToken? value))
             {
                 return value.ToString();
             }
