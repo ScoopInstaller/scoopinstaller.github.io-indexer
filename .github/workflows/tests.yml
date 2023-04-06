@@ -56,6 +56,6 @@ jobs:
 
     - name: Stop SonarScanner and send analysis
       run: |
-        Move-Item "${{ env.TESTS_PATH }}TestResults/*/coverage.opencover.xml" "${{ github.workspace }}" -Force
-        $env:JAVA_HOME=$env:JAVA_HOME_17_X64 # Force JAVA_HOME environment variable (Version 11 or 17 is required by SonarScanner)
+        mv "${{ env.TESTS_PATH }}TestResults/*/coverage.opencover.xml" "${{ github.workspace }}"
+        export JAVA_HOME=$JAVA_HOME_17_X64 # Force JAVA_HOME environment variable (Version 11 or 17 is required by SonarScanner)
         dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
