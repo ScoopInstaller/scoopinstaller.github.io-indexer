@@ -12,6 +12,7 @@ env:
   OUTPUT_PATH: ${{ github.workspace }}/output
   TESTS_PATH: ${{ github.workspace }}/src/ScoopSearch.Functions.Tests/
   DOTNET_VERSION: '6.0.x'
+  # SONAR_TOKEN: ''  # Stored in the Actions secrets
 
 jobs:
   tests:
@@ -27,8 +28,20 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    - name: Install SonarScanner
+      run: dotnet tool install --global dotnet-sonarscanner
+
     - name: Install dependencies
       run: dotnet restore ${{ env.TESTS_PATH }} --verbosity detailed
+
+    - name: Start SonarScanner
+      run: >
+        dotnet sonarscanner begin
+        /o:"scoopinstaller"
+        /k:"ScoopInstaller_ScoopInstaller.AzureFunctions"
+        /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+        /d:sonar.host.url="https://sonarcloud.io"
+        /d:sonar.cs.opencover.reportsPaths="${{ github.workspace }}\coverage.opencover.xml"
 
     - name: Tests
       run: >
@@ -40,3 +53,9 @@ jobs:
         -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
       env:
         GitHubToken: ${{ secrets.GITHUBTOKEN }}
+
+    - name: Stop SonarScanner and send analysis
+      run: |
+        Move-Item "${{ env.TESTS_PATH }}TestResults/*/coverage.opencover.xml" "${{ github.workspace }}" -Force
+        $env:JAVA_HOME=$env:JAVA_HOME_17_X64 # Force JAVA_HOME environment variable (Version 11 or 17 is required by SonarScanner)
+        dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
