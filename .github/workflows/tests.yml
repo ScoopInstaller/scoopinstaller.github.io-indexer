@@ -45,7 +45,7 @@ jobs:
         /k:"ScoopInstaller_ScoopInstaller.AzureFunctions"
         /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
         /d:sonar.host.url="https://sonarcloud.io"
-        /d:sonar.cs.opencover.reportsPaths=coverage.xml
+        /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
 
     - name: Tests
       run: >
