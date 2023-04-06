@@ -29,7 +29,7 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Install SonarScanner and dotnet-coverage
-      run: >
+      run: |
         dotnet tool install --global dotnet-sonarscanner
         dotnet tool install --global dotnet-coverage
 
@@ -47,7 +47,10 @@ jobs:
 
     - name: Tests
       run: >
-        dotnet-coverage collect "dotnet test ${{ env.TESTS_PATH }} --configuration Release --no-restore --verbosity detailed" -f xml -o "coverage.xml"
+        dotnet-coverage collect
+        "dotnet test ${{ env.TESTS_PATH }} --configuration Release --no-restore --verbosity detailed"
+        -f xml
+        -o "coverage.xml"
       env:
         GitHubToken: ${{ secrets.GITHUBTOKEN }}
 
