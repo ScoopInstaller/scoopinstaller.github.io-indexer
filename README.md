@@ -1,6 +1,10 @@
 
 # ScoopInstaller Azure functions
 
+[![Azure functions workflow](https://github.com/ScoopInstaller/ScoopInstaller.AzureFunctions/actions/workflows/deployment.yml/badge.svg)](https://github.com/ScoopInstaller/ScoopInstaller.AzureFunctions/actions/workflows/deployment.yml)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ScoopInstaller_ScoopInstaller.AzureFunctions&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ScoopInstaller_ScoopInstaller.AzureFunctions)
+
+
 This repository contains the Azure functions used to build and maintain the Scoop applications index used by https://scoopinstaller.github.io/
 
 #### Prerequisites
