@@ -1,33 +1,26 @@
-name: Azure functions workflow
+name: Azure deployment
 on:
-  schedule:
-    - cron: "5 2 * * *"
-  push:
-    branches:
-      - main
-  pull_request:
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: 'Deploy to Azure (main branch only)'
-        required: true
-        default: false
-        type: choice
-        options:
-        - false
-        - true
 
 env:
   OUTPUT_PATH: ${{ github.workspace }}/output
   AZURE_APP_NAME: ScoopSearch.Functions
-  SRC_PATH: ${{ github.workspace }}/src/
   APP_PATH: ${{ github.workspace }}/src/ScoopSearch.Functions/
-  TESTS_PATH: ${{ github.workspace }}/src/ScoopSearch.Functions.Tests/
   # AZURE_FUNCTIONAPP_PUBLISH_PROFILE: '' # Secret in the repository
   DOTNET_VERSION: '6.0.x'
 
 jobs:
-  build:
+  deployment-skipped:
+    if: ${{ github.ref != 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Message
+      run: echo "Deployment skipped. Only main branch can be deployed."
+
+  deployment:
+    name: Deployment 🚀🌐
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -51,12 +44,7 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0.9.15
 
     - name: Install dependencies
-      run: dotnet restore ${{ env.SRC_PATH }} --verbosity detailed
-
-    - name: Tests
-      run: dotnet test ${{ env.TESTS_PATH }} --configuration Release --no-restore --logger "console;verbosity=detailed"
-      env:
-        GitHubToken: ${{ secrets.GITHUBTOKEN }}
+      run: dotnet restore ${{ env.APP_PATH }} --verbosity detailed
 
     - name: Publish
       run: >
@@ -69,27 +57,15 @@ jobs:
         -p:InformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
         --verbosity detailed
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: function-app
-        path: ${{ env.OUTPUT_PATH }}
-
-  deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.deploy == 'true' }}
-    runs-on: ubuntu-latest
-    needs: [ build ]
-
-    steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v3
-      with:
-          name: function-app
-          path: ${{ env.OUTPUT_PATH }}
-
-    - name: 'Publish Azure Functions'
+    - name: Deploy to Azure
       uses: Azure/functions-action@v1
       with:
         app-name: ${{ env.AZURE_APP_NAME }}
         package: '${{ env.OUTPUT_PATH }}'
         publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: function-app
+        path: ${{ env.OUTPUT_PATH }}

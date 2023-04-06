@@ -1,0 +1,41 @@
+name: Tests
+on:
+  schedule:
+    - cron: "5 2 * * *"
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  OUTPUT_PATH: ${{ github.workspace }}/output
+  TESTS_PATH: ${{ github.workspace }}/src/ScoopSearch.Functions.Tests/
+  DOTNET_VERSION: '6.0.x'
+
+jobs:
+  tests:
+    name: Tests ⚙️🧪
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup .NET ${{ env.DOTNET_VERSION }}
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install dependencies
+      run: dotnet restore ${{ env.TESTS_PATH }} --verbosity detailed
+
+    - name: Tests
+      run: >
+        dotnet test ${{ env.TESTS_PATH }}
+        --configuration Release
+        --no-restore
+        --verbosity detailed
+        --collect:"XPlat Code Coverage"
+        -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      env:
+        GitHubToken: ${{ secrets.GITHUBTOKEN }}
