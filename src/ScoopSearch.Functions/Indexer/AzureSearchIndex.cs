@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Azure.Search;
-using Microsoft.Azure.Search.Models;
+﻿using System.Collections.Generic;
+using Azure;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Indexes.Models;
 using Microsoft.Extensions.Options;
 using ScoopSearch.Functions.Configuration;
 using ScoopSearch.Functions.Data;
-using Index = Microsoft.Azure.Search.Models.Index;
 
 namespace ScoopSearch.Functions.Indexer
 {
@@ -28,93 +24,85 @@ namespace ScoopSearch.Functions.Indexer
 
         private const string EdgeNGramTokenFilter = "EdgeNGramTokenFilter";
 
-        private readonly string[] CorsAllowedHosts =
-        {
-            "*"
-        };
+        private static readonly string[] CorsAllowedHosts = { "*" };
 
-        public void CreateIndexIfRequired(SearchServiceClient client, string indexName)
+        private readonly SearchIndexClient _client;
+        private readonly string _indexName;
+
+        public AzureSearchIndex(IOptions<AzureSearchOptions> options)
         {
-            if (!client.Indexes.Exists(indexName))
+            _indexName = options.Value.IndexName;
+            _client = new SearchIndexClient(options.Value.ServiceUrl, new AzureKeyCredential(options.Value.AdminApiKey));
+        }
+
+        public void CreateIndexIfRequired()
+        {
+            var index = new SearchIndex(_indexName);
+            index.Fields = BuildFields();
+            index.Analyzers.Add(BuildAnalyzer(StandardAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase));
+            index.Analyzers.Add(BuildAnalyzer(PrefixAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase, EdgeNGramTokenFilter));
+            index.Analyzers.Add(BuildAnalyzer(SuffixAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase, TokenFilterName.Reverse, EdgeNGramTokenFilter));
+            index.Analyzers.Add(BuildAnalyzer(ReverseAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase, TokenFilterName.Reverse));
+            index.Analyzers.Add(BuildAnalyzer(UrlAnalyzer, LexicalTokenizerName.UaxUrlEmail, TokenFilterName.Lowercase));
+            index.TokenFilters.Add(BuildTokenFilter());
+            index.ScoringProfiles.Add(BuildScoringProfile());
+            index.DefaultScoringProfile = ScoringProfile;
+            index.CorsOptions = new CorsOptions(CorsAllowedHosts);
+
+            _client.CreateOrUpdateIndex(index);
+        }
+
+        private IList<SearchField> BuildFields()
+        {
+            return new FieldBuilder().Build(typeof(ManifestInfo));
+        }
+
+        private CustomAnalyzer BuildAnalyzer(string name, LexicalTokenizerName tokenizer, params TokenFilterName[] filters)
+        {
+            var analyzer = new CustomAnalyzer(name, tokenizer);
+            filters.ForEach(_ => analyzer.TokenFilters.Add(_));
+
+            return analyzer;
+        }
+
+        private TokenFilter BuildTokenFilter()
+        {
+            return new EdgeNGramTokenFilter(EdgeNGramTokenFilter)
             {
-                var definition = new Index
-                {
-                    Name = indexName,
-                    Fields = FieldBuilder.BuildForType<ManifestInfo>(),
-                    Analyzers = new[]
-                    {
-                        new CustomAnalyzer
-                        {
-                            Name = StandardAnalyzer,
-                            Tokenizer = TokenizerName.Standard,
-                            TokenFilters = new[] { TokenFilterName.Lowercase }
-                        },
-                        new CustomAnalyzer
-                        {
-                            Name = PrefixAnalyzer,
-                            Tokenizer = TokenizerName.Standard,
-                            TokenFilters = new[] { TokenFilterName.Lowercase, EdgeNGramTokenFilter }
-                        },
-                        new CustomAnalyzer
-                        {
-                            Name = SuffixAnalyzer,
-                            Tokenizer = TokenizerName.Standard,
-                            TokenFilters = new[] { TokenFilterName.Lowercase, TokenFilterName.Reverse, EdgeNGramTokenFilter }
-                        },
-                        new CustomAnalyzer
-                        {
-                            Name = ReverseAnalyzer,
-                            Tokenizer = TokenizerName.Standard,
-                            TokenFilters = new[] { TokenFilterName.Lowercase, TokenFilterName.Reverse }
-                        },
-                        new CustomAnalyzer
-                        {
-                            Name = UrlAnalyzer,
-                            Tokenizer = TokenizerName.UaxUrlEmail,
-                            TokenFilters = new[] { TokenFilterName.Lowercase }
-                        }
-                    },
-                    TokenFilters = new[]
-                    {
-                        new EdgeNGramTokenFilterV2
-                        {
-                            Name = EdgeNGramTokenFilter,
-                            MinGram = 2,
-                            MaxGram = 256,
-                            Side = EdgeNGramTokenFilterSide.Front
-                        },
-                    },
-                    ScoringProfiles = new[]
-                    {
-                        new ScoringProfile(
-                            ScoringProfile,
-                            new TextWeights(
-                                new Dictionary<string, double>
-                                {
-                                    { ManifestInfo.NamePartialField, 40}, { ManifestInfo.NameSuffixField, 40}, {ManifestInfo.DescriptionField, 20}
-                                }),
-                            new List<ScoringFunction>
-                            {
-                                new MagnitudeScoringFunction(
-                                    ManifestMetadata.OfficialRepositoryNumberField,
-                                    10,
-                                    0,
-                                    1,
-                                    false),
-                                new MagnitudeScoringFunction(
-                                    ManifestMetadata.RepositoryStarsField,
-                                    10,
-                                    1,
-                                    100,
-                                    true)
-                            })
-                    },
-                    DefaultScoringProfile = ScoringProfile,
-                    CorsOptions = new CorsOptions(CorsAllowedHosts, null)
-                };
+                MinGram = 2,
+                MaxGram = 256,
+                Side = EdgeNGramTokenFilterSide.Front
+            };
+        }
 
-                client.Indexes.Create(definition);
-            }
+        private ScoringProfile BuildScoringProfile()
+        {
+            var textWeights = new TextWeights(
+                new Dictionary<string, double>
+                {
+                    { ManifestInfo.NamePartialField, 40 },
+                    { ManifestInfo.NameSuffixField, 40 },
+                    { ManifestInfo.DescriptionField, 20 }
+                }
+            );
+
+            var scoringFunctions = new List<ScoringFunction>
+            {
+                new MagnitudeScoringFunction(
+                    ManifestMetadata.OfficialRepositoryNumberField,
+                    10,
+                    new MagnitudeScoringParameters(0, 1) { ShouldBoostBeyondRangeByConstant = false }),
+                new MagnitudeScoringFunction(
+                    ManifestMetadata.RepositoryStarsField,
+                    10,
+                    new MagnitudeScoringParameters(1, 100) { ShouldBoostBeyondRangeByConstant = true })
+            };
+
+            var scoringProfile = new ScoringProfile(ScoringProfile);
+            scoringProfile.TextWeights = textWeights;
+            scoringFunctions.ForEach(_ => scoringProfile.Functions.Add(_));
+
+            return scoringProfile;
         }
     }
 }

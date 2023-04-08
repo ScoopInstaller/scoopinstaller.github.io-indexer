@@ -1,37 +1,31 @@
 ﻿using System;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScoopSearch.Functions.Data.JsonConverter
 {
-    internal class DescriptionConverter : Newtonsoft.Json.JsonConverter
+    internal class DescriptionConverter : JsonConverter<string?>
     {
-        public override bool CanWrite => false;
-
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => throw new NotImplementedException();
-
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (reader.TokenType == JsonToken.String)
+            if (reader.TokenType == JsonTokenType.String)
             {
-                return reader.Value;
+                return reader.GetString();
             }
 
             string description = string.Empty;
-            if (reader.TokenType == JsonToken.StartArray)
+            if (reader.TokenType == JsonTokenType.StartArray)
             {
-                while (reader.TokenType != JsonToken.EndArray)
+                while (reader.TokenType != JsonTokenType.EndArray)
                 {
-                    reader.Read();
-                    description += string.IsNullOrEmpty((string?)reader.Value) ? Environment.NewLine : reader.Value;
+                    var token = reader.GetString();
+                    description += string.IsNullOrEmpty(token) ? Environment.NewLine : token;
                 }
             }
 
             return description;
         }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(string);
-        }
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options) => throw new NotImplementedException();
     }
 }

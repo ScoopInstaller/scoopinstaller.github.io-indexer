@@ -1,8 +1,8 @@
+using System.Text.Json;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Extensions;
 using Moq;
-using Newtonsoft.Json;
 using ScoopSearch.Functions.Data;
 using ScoopSearch.Functions.Git;
 using ScoopSearch.Functions.Manifest;
@@ -110,7 +110,7 @@ public class ManifestCrawlerTests
             manifestInfo.Metadata.Sha.Should().Be("sha_manifest2.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
-        _logger.Should().Log<JsonReaderException>(LogLevel.Warning, $"Unable to parse manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
+        _logger.Should().Log<JsonException>(LogLevel.Warning, $"Unable to parse manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
     }
 
     [Fact]

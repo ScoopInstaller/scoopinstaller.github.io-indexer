@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using ScoopSearch.Functions.Data;
 using ScoopSearch.Functions.Git;
 
@@ -81,14 +80,7 @@ namespace ScoopSearch.Functions.Manifest
         {
             try
             {
-                return JsonConvert.DeserializeObject<ManifestInfo>(
-                    contentJson,
-                    new JsonSerializerSettings
-                    {
-                        Context = new StreamingContext(
-                            StreamingContextStates.Other,
-                            (_keyGenerator.Generate(metadata), metadata))
-                    });
+                return ManifestInfo.Deserialize(contentJson, _keyGenerator.Generate(metadata), metadata);
             }
             catch (Exception ex)
             {

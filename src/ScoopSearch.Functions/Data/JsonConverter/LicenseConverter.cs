@@ -1,40 +1,34 @@
 ﻿using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScoopSearch.Functions.Data.JsonConverter
 {
-    internal class LicenseConverter : Newtonsoft.Json.JsonConverter
+    internal class LicenseConverter : JsonConverter<string?>
     {
-        public override bool CanWrite => false;
-
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => throw new NotImplementedException();
-
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (reader.TokenType == JsonToken.String)
+            if (reader.TokenType == JsonTokenType.String)
             {
-                return reader.Value;
+                return reader.GetString();
             }
 
-            JObject jObject = JObject.Load(reader);
-            if (jObject.TryGetValue("identifier", out JToken? identifier))
+            using (var document = JsonDocument.ParseValue(ref reader))
             {
-                return identifier.ToString();
-            }
-            else if (jObject.TryGetValue("url", out JToken? value))
-            {
-                return value.ToString();
-            }
-            else
-            {
+                if (document.RootElement.TryGetProperty("identifier", out var identifier))
+                {
+                    return identifier.GetString();
+                }
+
+                if (document.RootElement.TryGetProperty("url", out var value))
+                {
+                    return value.GetString();
+                }
+
                 throw new NotSupportedException();
             }
         }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(string);
-        }
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options) => throw new NotImplementedException();
     }
 }
