@@ -5,14 +5,6 @@ using ScoopSearch.Functions.Data;
 
 namespace ScoopSearch.Functions.Git
 {
-    public record Entry(string Path, EntryType Type);
-
-    public enum EntryType
-    {
-        File,
-        Directory
-    }
-
     public interface IGitRepository
     {
         void Delete();
@@ -21,8 +13,8 @@ namespace ScoopSearch.Functions.Git
 
         string GetBranchName();
 
-        IEnumerable<Entry> GetEntriesFromIndex();
+        IEnumerable<string> GetFilesFromIndex();
 
-        string ReadContent(Entry entry);
+        string ReadContent(string filePath);
     }
 }

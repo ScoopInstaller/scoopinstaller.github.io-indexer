@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Functions.Data;
@@ -32,32 +31,30 @@ namespace ScoopSearch.Functions.Manifest
             {
                 _logger.LogDebug("Generating manifest infos from repository '{Repository}'", bucketUri);
 
-                var entries = repository.GetEntriesFromIndex().ToArray();
-                var manifestsSubPath = entries.Any(_ => _ is { Type: EntryType.Directory, Path: "bucket" })
-                    ? "bucket"
-                    : string.Empty;
+                var files = repository.GetFilesFromIndex().ToArray();
+                var manifestsSubPath = files.Any(_ => _.StartsWith("bucket/")) ? "bucket" : null;
 
-                bool IsManifestPredicate(string filePath) => Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true
+                bool IsManifestPredicate(string filePath) => (manifestsSubPath == null ? Path.GetDirectoryName(filePath)?.Length == 0 : Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true)
                                                              && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
 
                 var commitCache = repository.GetCommitsCache(IsManifestPredicate, cancellationToken);
 
-                foreach (var entry in entries
-                             .Where(x => x.Type == EntryType.File && IsManifestPredicate(x.Path))
+                foreach (var filePath in files
+                             .Where(IsManifestPredicate)
                              .TakeWhile(x => !cancellationToken.IsCancellationRequested))
                 {
-                    if (commitCache.TryGetValue(entry.Path, out var commits) && commits.FirstOrDefault() is { } commit)
+                    if (commitCache.TryGetValue(filePath, out var commits) && commits.FirstOrDefault() is { } commit)
                     {
                         var manifestMetadata = new ManifestMetadata(
                             bucketUri.AbsoluteUri,
                             repository.GetBranchName(),
-                            entry.Path,
+                            filePath,
                             commit.AuthorName,
                             commit.AuthorEmail,
                             commit.Date,
                             commit.Sha);
 
-                        var manifestData = repository.ReadContent(entry);
+                        var manifestData = repository.ReadContent(filePath);
                         var manifest = CreateManifest(manifestData, manifestMetadata);
                         if (manifest != null)
                         {
@@ -66,7 +63,7 @@ namespace ScoopSearch.Functions.Manifest
                     }
                     else
                     {
-                        _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", entry.Path, bucketUri);
+                        _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", filePath, bucketUri);
                     }
                 }
 
