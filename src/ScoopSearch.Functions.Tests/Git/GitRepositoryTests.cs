@@ -83,7 +83,7 @@ public class GitRepositoryTests : IDisposable
         var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
 
         // Act
-        var result = repository.GetEntriesFromIndex();
+        var result = repository.GetFilesFromIndex();
 
         // Assert
         result.Should().HaveCount(7);
@@ -96,7 +96,7 @@ public class GitRepositoryTests : IDisposable
         var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
 
         // Act
-        Action act = () => repository.ReadContent(new Entry("foo", EntryType.File));
+        Action act = () => repository.ReadContent("foo");
 
         // Assert
         act.Should().Throw<FileNotFoundException>();
@@ -109,7 +109,7 @@ public class GitRepositoryTests : IDisposable
         var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
 
         // Act
-        var result = repository.ReadContent(new Entry("kaxaml.json", EntryType.File));
+        var result = repository.ReadContent("kaxaml.json");
 
         // Assert
         result.Should().NotBeNull();

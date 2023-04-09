@@ -1,37 +1,35 @@
 ﻿using System;
-using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScoopSearch.Functions.Data.JsonConverter
 {
-    internal class DescriptionConverter : Newtonsoft.Json.JsonConverter
+    internal class DescriptionConverter : JsonConverter<string?>
     {
-        public override bool CanWrite => false;
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotImplementedException();
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (reader.TokenType == JsonToken.String)
+            if (reader.TokenType == JsonTokenType.String)
             {
-                return reader.Value;
+                return reader.GetString();
             }
 
-            string description = string.Empty;
-            if (reader.TokenType == JsonToken.StartArray)
+            var description = new List<string?>();
+            if (reader.TokenType == JsonTokenType.StartArray)
             {
-                while (reader.TokenType != JsonToken.EndArray)
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
                 {
-                    reader.Read();
-                    description += string.IsNullOrEmpty((string)reader.Value) ? Environment.NewLine : reader.Value;
+                    description.Add(JsonSerializer.Deserialize<string>(ref reader, options));
                 }
             }
 
-            return description;
+            return string.Join(" ", description.Select(_ => string.IsNullOrEmpty(_) ? Environment.NewLine : _));
         }
 
-        public override bool CanConvert(Type objectType)
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
         {
-            return objectType == typeof(string);
+            JsonSerializer.Serialize(writer, value, options);
         }
     }
 }

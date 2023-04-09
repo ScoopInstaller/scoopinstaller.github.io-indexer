@@ -5,7 +5,7 @@
 
         "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=scoopsearch;AccountKey=[ACCOUNTKEY];EndpointSuffix=core.windows.net",
         "DispatchBucketsCrawlerCron": "0 5 */6 * * *",
-        "AzureSearchServiceName": "scoopsearch",
+        "AzureSearchServiceUrl": "https://[SERVICENAME].search.windows.net",
         "AzureSearchAdminApiKey": "[ADMINAPIKEY]",
         "AzureSearchIndexName": "apps",
         "GitHubToken": "[GITHUBTOKEN]"

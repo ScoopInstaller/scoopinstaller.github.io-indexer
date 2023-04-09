@@ -17,14 +17,12 @@ namespace ScoopSearch.Functions.Tests;
 
 public class DispatchBucketsCrawlerTests : IClassFixture<HostFixture>
 {
-    private readonly ITestOutputHelper _testOutputHelper;
     private readonly XUnitLogger<BucketCrawler> _logger;
     private readonly Mock<IIndexer> _indexerMock;
     private readonly DispatchBucketsCrawler _sut;
 
     public DispatchBucketsCrawlerTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
     {
-        _testOutputHelper = testOutputHelper;
         hostFixture.Configure(testOutputHelper);
 
         _logger = new XUnitLogger<BucketCrawler>(testOutputHelper);

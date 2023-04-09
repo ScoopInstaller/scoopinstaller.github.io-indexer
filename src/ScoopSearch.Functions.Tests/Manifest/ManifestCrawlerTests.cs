@@ -1,8 +1,8 @@
+using System.Text.Json;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Extensions;
 using Moq;
-using Newtonsoft.Json;
 using ScoopSearch.Functions.Data;
 using ScoopSearch.Functions.Git;
 using ScoopSearch.Functions.Manifest;
@@ -57,8 +57,8 @@ public class ManifestCrawlerTests
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
-            new GitRepositoryMockEntry("manifest1.json", EntryType.File, null),
-            new GitRepositoryMockEntry("manifest2.json", EntryType.File, "{}"),
+            new GitRepositoryMockEntry("manifest1.json", null),
+            new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
         _gitRepositoryProviderMock
             .Setup(_ => _.Download(uri, cancellationToken))
@@ -89,8 +89,8 @@ public class ManifestCrawlerTests
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
-            new GitRepositoryMockEntry("manifest1.json", EntryType.File, "invalid"),
-            new GitRepositoryMockEntry("manifest2.json", EntryType.File, "{}"),
+            new GitRepositoryMockEntry("manifest1.json", "invalid"),
+            new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
         _gitRepositoryProviderMock
             .Setup(_ => _.Download(uri, cancellationToken))
@@ -110,7 +110,7 @@ public class ManifestCrawlerTests
             manifestInfo.Metadata.Sha.Should().Be("sha_manifest2.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
-        _logger.Should().Log<JsonReaderException>(LogLevel.Warning, $"Unable to parse manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
+        _logger.Should().Log<JsonException>(LogLevel.Error, $"Unable to parse manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
     }
 
     [Fact]
@@ -121,9 +121,8 @@ public class ManifestCrawlerTests
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
-            new GitRepositoryMockEntry("bucket/manifest1.json", EntryType.File, "{}"),
-            new GitRepositoryMockEntry("manifest2.json", EntryType.File, "{}"),
-            new GitRepositoryMockEntry("bucket", EntryType.Directory, null),
+            new GitRepositoryMockEntry("bucket/manifest1.json", "{}"),
+            new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
         _gitRepositoryProviderMock
             .Setup(_ => _.Download(uri, cancellationToken))
@@ -145,14 +144,14 @@ public class ManifestCrawlerTests
         }
     }
 
-    private record GitRepositoryMockEntry(string Path, EntryType Type, string? Content);
+    private record GitRepositoryMockEntry(string Path, string? Content);
 
     private Mock<IGitRepository> CreateGitRepositoryMock(GitRepositoryMockEntry[] entries, CancellationToken cancellationToken)
     {
         var gitRepositoryMock = new Mock<IGitRepository>();
         gitRepositoryMock
-            .Setup(_ => _.GetEntriesFromIndex())
-            .Returns(entries.Select(_ => new Entry(_.Path, _.Type)));
+            .Setup(_ => _.GetFilesFromIndex())
+            .Returns(entries.Select(_ => _.Path));
         gitRepositoryMock
             .Setup(_ => _.GetCommitsCache(It.IsAny<Predicate<string>>(), cancellationToken))
             .Returns(entries.Where(_ => _.Content != null).ToDictionary(
@@ -164,7 +163,7 @@ public class ManifestCrawlerTests
         foreach (var entry in entries.Where(_ => _.Content != null))
         {
             gitRepositoryMock
-                .Setup(_ => _.ReadContent(It.Is<Entry>(_ => _.Path == entry.Path)))
+                .Setup(_ => _.ReadContent(It.Is<string>(_ => _ == entry.Path)))
                 .Returns(entry.Content!);
         }
 

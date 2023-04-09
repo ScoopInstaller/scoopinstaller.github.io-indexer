@@ -1,8 +1,8 @@
 ﻿using System.IO;
-using System.Runtime.Serialization;
-using Microsoft.Azure.Search;
-using Microsoft.Azure.Search.Models;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Indexes.Models;
 using ScoopSearch.Functions.Data.JsonConverter;
 using ScoopSearch.Functions.Indexer;
 
@@ -15,73 +15,72 @@ namespace ScoopSearch.Functions.Data
         public const string NameSuffixField = nameof(NameSuffix);
         public const string DescriptionField = nameof(Description);
 
-        [JsonConstructor]
-        private ManifestInfo()
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        public ManifestInfo()
         {
         }
 
-        [System.ComponentModel.DataAnnotations.Key]
-        [IsFilterable, IsSortable]
-        [JsonProperty]
+        [SimpleField(IsKey = true, IsFilterable = true, IsSortable = true)]
+        [JsonInclude]
         public string Id { get; private set; } = null!;
 
-        [IsSearchable]
-        [JsonProperty]
-        [Analyzer(AzureSearchIndex.StandardAnalyzer)]
-        public string Name { get; private set; } = null!;
+        [SearchableField(AnalyzerName = AzureSearchIndex.StandardAnalyzer)]
+        [JsonInclude]
+        public string? Name { get; private set; }
 
-        [IsSearchable, IsSortable]
-        [JsonProperty]
-        public string NameSortable { get; private set; } = null!;
+        [SearchableField(IsSortable = true)]
+        [JsonInclude]
+        public string? NameSortable { get; private set; }
 
-        [IsSearchable]
-        [SearchAnalyzer(AzureSearchIndex.StandardAnalyzer)]
-        [IndexAnalyzer(AzureSearchIndex.PrefixAnalyzer)]
-        [JsonProperty]
-        public string NamePartial { get; private set; } = null!;
+        [SearchableField(SearchAnalyzerName = AzureSearchIndex.StandardAnalyzer, IndexAnalyzerName = AzureSearchIndex.PrefixAnalyzer)]
+        [JsonInclude]
+        public string? NamePartial { get; private set; }
 
-        [IsSearchable]
-        [SearchAnalyzer(AzureSearchIndex.ReverseAnalyzer)]
-        [IndexAnalyzer(AzureSearchIndex.SuffixAnalyzer)]
-        [JsonProperty]
-        public string NameSuffix { get; private set; } = null!;
+        [SearchableField(SearchAnalyzerName = AzureSearchIndex.ReverseAnalyzer, IndexAnalyzerName = AzureSearchIndex.SuffixAnalyzer)]
+        [JsonInclude]
+        public string? NameSuffix { get; private set; }
 
-        [IsSearchable]
-        [Analyzer(AnalyzerName.AsString.EnLucene)]
+        [SearchableField(AnalyzerName = LexicalAnalyzerName.Values.EnLucene)]
         [JsonConverter(typeof(DescriptionConverter))]
-        [JsonProperty]
-        public string Description { get; private set; } = null!;
+        [JsonInclude]
+        public string? Description { get; private set; }
 
-        [IsSearchable, IsFilterable, IsSortable, IsFacetable]
-        [Analyzer(AzureSearchIndex.UrlAnalyzer)]
-        [JsonProperty]
-        public string Homepage { get; private set; } = null!;
+        [SearchableField(IsFilterable = true, IsSortable = true, IsFacetable = true, AnalyzerName = AzureSearchIndex.UrlAnalyzer)]
+        [JsonInclude]
+        public string? Homepage { get; private set; }
 
-        [IsSearchable, IsFilterable, IsFacetable]
+        [SearchableField(IsFilterable = true, IsFacetable = true)]
         [JsonConverter(typeof(LicenseConverter))]
-        [JsonProperty]
-        public string License { get; private set; } = null!;
+        [JsonInclude]
+        public string? License { get; private set; }
 
-        [IsSearchable, IsSortable, IsFilterable]
-        [Analyzer(AnalyzerName.AsString.Keyword)]
-        [JsonProperty]
-        public string Version { get; private set; } = null!;
+        [SearchableField(IsSortable = true, IsFilterable = true, AnalyzerName = LexicalAnalyzerName.Values.Keyword)]
+        [JsonInclude]
+        public string? Version { get; private set; }
 
-        [JsonProperty]
+        [JsonInclude]
         public ManifestMetadata Metadata { get; private set; } = null!;
 
-        [OnDeserialized]
-        internal void OnDeserialized(StreamingContext context)
+        internal static ManifestInfo? Deserialize(string contentJson, string key, ManifestMetadata manifestMetadata)
         {
-            if (context.Context is (string key, ManifestMetadata manifestMetadata))
+            var manifestInfo = JsonSerializer.Deserialize<ManifestInfo>(contentJson, JsonOptions);
+            if (manifestInfo != null)
             {
-                Id = key;
-                Name = Path.GetFileNameWithoutExtension(manifestMetadata.FilePath);
-                NamePartial = Name;
-                NameSuffix = Name;
-                NameSortable = Name.ToLowerInvariant();
-                Metadata = manifestMetadata;
+                manifestInfo.Id = key;
+                manifestInfo.Name = Path.GetFileNameWithoutExtension(manifestMetadata.FilePath);
+                manifestInfo.NamePartial = manifestInfo.Name;
+                manifestInfo.NameSuffix = manifestInfo.Name;
+                manifestInfo.NameSortable = manifestInfo.Name?.ToLowerInvariant();
+                manifestInfo.Metadata = manifestMetadata;
             }
+
+            return manifestInfo;
         }
     }
 }

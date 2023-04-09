@@ -137,16 +137,16 @@ namespace ScoopSearch.Functions.Git
             return _repository.Head.FriendlyName;
         }
 
-        public IEnumerable<Entry> GetEntriesFromIndex()
+        public IEnumerable<string> GetFilesFromIndex()
         {
             return _repository.Index
-                .Where(x => x.Mode is Mode.Directory or Mode.NonExecutableFile)
-                .Select(x => new Entry(x.Path, x.Mode == Mode.Directory ? EntryType.Directory : EntryType.File));
+                .Where(x => x.Mode is Mode.NonExecutableFile)
+                .Select(x => x.Path);
         }
 
-        public string ReadContent(Entry entry)
+        public string ReadContent(string filePath)
         {
-            return File.ReadAllText(Path.Combine(_repository.Info.WorkingDirectory, entry.Path));
+            return File.ReadAllText(Path.Combine(_repository.Info.WorkingDirectory, filePath));
         }
     }
 }

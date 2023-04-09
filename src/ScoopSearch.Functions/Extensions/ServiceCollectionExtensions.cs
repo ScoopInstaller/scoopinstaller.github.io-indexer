@@ -31,14 +31,7 @@ public static class ServiceCollectionExtensions
 
                 // Authentication to avoid API rate limitation
                 var gitHubOptions = serviceProvider.GetRequiredService<IOptions<GitHubOptions>>();
-                if (gitHubOptions.Value.Token != null)
-                {
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
-                }
-                else
-                {
-                    serviceProvider.GetRequiredService<ILogger<HttpClient>>().LogWarning($"GitHub token not set for HttpClient {name}");
-                }
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
             })
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = allowAutoRedirect })
             .AddTransientHttpErrorPolicy(builder => builder.WaitAndRetryAsync(4, attempt => TimeSpan.FromSeconds(Math.Min(1, (attempt - 1) * 5))))

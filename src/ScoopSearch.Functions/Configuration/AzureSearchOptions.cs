@@ -1,8 +1,10 @@
-﻿namespace ScoopSearch.Functions.Configuration
+﻿using System;
+
+namespace ScoopSearch.Functions.Configuration
 {
     public class AzureSearchOptions
     {
-        public string ServiceName { get; set; } = null!;
+        public Uri ServiceUrl { get; set; } = null!;
 
         public string AdminApiKey { get; set; } = null!;
 
