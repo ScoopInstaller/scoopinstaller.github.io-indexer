@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -13,19 +15,21 @@ namespace ScoopSearch.Functions.Data.JsonConverter
                 return reader.GetString();
             }
 
-            string description = string.Empty;
+            var description = new List<string?>();
             if (reader.TokenType == JsonTokenType.StartArray)
             {
-                while (reader.TokenType != JsonTokenType.EndArray)
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
                 {
-                    var token = reader.GetString();
-                    description += string.IsNullOrEmpty(token) ? Environment.NewLine : token;
+                    description.Add(JsonSerializer.Deserialize<string>(ref reader, options));
                 }
             }
 
-            return description;
+            return string.Join(" ", description.Select(_ => string.IsNullOrEmpty(_) ? Environment.NewLine : _));
         }
 
-        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options) => throw new NotImplementedException();
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, options);
+        }
     }
 }

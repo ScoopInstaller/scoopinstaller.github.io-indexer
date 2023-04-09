@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -13,8 +15,9 @@ namespace ScoopSearch.Functions.Data.JsonConverter
                 return reader.GetString();
             }
 
-            using (var document = JsonDocument.ParseValue(ref reader))
+            if (reader.TokenType == JsonTokenType.StartObject)
             {
+                using var document = JsonDocument.ParseValue(ref reader);
                 if (document.RootElement.TryGetProperty("identifier", out var identifier))
                 {
                     return identifier.GetString();
@@ -24,11 +27,23 @@ namespace ScoopSearch.Functions.Data.JsonConverter
                 {
                     return value.GetString();
                 }
-
-                throw new NotSupportedException();
             }
+
+            var licenses = new List<string?>();
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                {
+                    licenses.Add(this.Read(ref reader, typeToConvert, options));
+                }
+            }
+
+            return string.Join(", ", licenses.Where(_ => !string.IsNullOrEmpty(_)));
         }
 
-        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options) => throw new NotImplementedException();
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, options);
+        }
     }
 }

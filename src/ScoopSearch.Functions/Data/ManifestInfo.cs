@@ -15,7 +15,12 @@ namespace ScoopSearch.Functions.Data
         public const string NameSuffixField = nameof(NameSuffix);
         public const string DescriptionField = nameof(Description);
 
-        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         public ManifestInfo()
         {

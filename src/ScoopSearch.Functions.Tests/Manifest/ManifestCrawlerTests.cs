@@ -110,7 +110,7 @@ public class ManifestCrawlerTests
             manifestInfo.Metadata.Sha.Should().Be("sha_manifest2.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
-        _logger.Should().Log<JsonException>(LogLevel.Warning, $"Unable to parse manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
+        _logger.Should().Log<JsonException>(LogLevel.Error, $"Unable to parse manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
     }
 
     [Fact]

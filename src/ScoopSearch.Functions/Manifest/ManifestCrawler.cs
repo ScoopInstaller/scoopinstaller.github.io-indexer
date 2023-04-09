@@ -84,7 +84,7 @@ namespace ScoopSearch.Functions.Manifest
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unable to parse manifest '{Manifest}' from '{Repository}'", metadata.FilePath, metadata.Repository);
+                _logger.LogError(ex, "Unable to parse manifest '{Manifest}' from '{Repository}'", metadata.FilePath, metadata.Repository);
             }
 
             return null;
