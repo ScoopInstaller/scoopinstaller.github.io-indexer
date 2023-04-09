@@ -1,11 +1,7 @@
-using System.Reflection;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host.Bindings;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using ScoopSearch.Functions.Tests.Helpers;
 using Xunit.Abstractions;
@@ -52,20 +48,13 @@ public class HostFixture : IDisposable
             .Setup(_ => _.CreateLogger(It.IsAny<string>()))
             .Returns<string>(loggerName => new XUnitLogger(loggerName, _testOutputHelper));
 
-        var executionContextOptions = ServiceDescriptor.Singleton<IOptions<ExecutionContextOptions>>(
-            serviceProvider =>
-                new OptionsWrapper<ExecutionContextOptions>(
-                    new ExecutionContextOptions
-                    {
-                        AppDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
-                    }));
-
         var host = new HostBuilder()
             .ConfigureWebJobs(builder => builder
-                .UseWebJobsStartup(typeof(Startup), new WebJobsBuilderContext(), startupLoggerFactoryMock.Object))
-
-            .ConfigureServices(services => services
-                .Replace(executionContextOptions))
+                 .UseWebJobsStartup(typeof(Startup), new WebJobsBuilderContext(), startupLoggerFactoryMock.Object))
+            .ConfigureAppConfiguration((_, configBuilder) =>
+            {
+                configBuilder.AddJsonFile(Path.Combine(_.HostingEnvironment.ContentRootPath, "settings.json"), optional: false, reloadOnChange: false);
+            })
             .ConfigureLogging((context, builder) =>
             {
                 var loggerProviderMock = new Mock<ILoggerProvider>();
