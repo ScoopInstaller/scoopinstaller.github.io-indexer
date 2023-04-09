@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ScoopSearch.Functions.Interceptor
 {
-    internal class TimingInterceptor : ProcessingAsyncInterceptor<Stopwatch>
+    internal class TimingInterceptor : AsyncTimingInterceptor
     {
         private readonly ILogger _logger;
 
@@ -13,12 +13,11 @@ namespace ScoopSearch.Functions.Interceptor
             _logger = logger;
         }
 
-        protected override Stopwatch StartingInvocation(IInvocation invocation)
+        protected override void StartingTiming(IInvocation invocation)
         {
-            return Stopwatch.StartNew();
         }
 
-        protected override void CompletedInvocation(IInvocation invocation, Stopwatch stopwatch)
+        protected override void CompletedTiming(IInvocation invocation, Stopwatch stopwatch)
         {
             _logger.LogDebug($"Executed '{invocation.Method.Name}({string.Join(", ", invocation.Arguments)})' in {stopwatch.Elapsed:g}");
         }
