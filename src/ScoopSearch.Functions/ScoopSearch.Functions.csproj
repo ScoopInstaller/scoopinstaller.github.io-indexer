@@ -8,6 +8,7 @@
     <WarningsAsErrors>Nullable</WarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Azure.Monitor.Query" Version="1.1.0" />
     <PackageReference Include="Azure.Search.Documents" Version="11.4.0" />
     <PackageReference Include="Castle.Core.AsyncInterceptor" Version="2.1.0" />
     <PackageReference Include="CsvHelper" Version="30.0.1" />
