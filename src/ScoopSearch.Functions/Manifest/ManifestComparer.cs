@@ -32,7 +32,8 @@ namespace ScoopSearch.Functions.Manifest
             {
                 return x.Id == y.Id
                        && x.Metadata.Sha == y.Metadata.Sha
-                       && x.Metadata.RepositoryStars == y.Metadata.RepositoryStars;
+                       && x.Metadata.RepositoryStars == y.Metadata.RepositoryStars
+                       && x.Metadata.OfficialRepositoryNumber == y.Metadata.OfficialRepositoryNumber;
             }
             else
             {

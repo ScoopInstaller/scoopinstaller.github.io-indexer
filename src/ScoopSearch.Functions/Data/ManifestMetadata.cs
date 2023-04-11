@@ -77,7 +77,7 @@ namespace ScoopSearch.Functions.Data
         public void SetRepositoryMetadata(bool officialRepository, int repositoryStars)
         {
             OfficialRepository = officialRepository;
-            OfficialRepositoryNumber = OfficialRepository.GetValueOrDefault() ? 0 : 1;
+            OfficialRepositoryNumber = OfficialRepository.GetValueOrDefault() ? 1 : 0;
             RepositoryStars = repositoryStars;
         }
     }

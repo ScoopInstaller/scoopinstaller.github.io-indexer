@@ -28,6 +28,7 @@ namespace ScoopSearch.Functions.Indexer
             options.Select.Add(ManifestInfo.IdField);
             options.Select.Add(ManifestMetadata.RepositoryField);
             options.Select.Add(ManifestMetadata.RepositoryStarsField);
+            options.Select.Add(ManifestMetadata.OfficialRepositoryNumberField);
             options.Select.Add(ManifestMetadata.ShaField);
             options.Filter = $"{ManifestMetadata.RepositoryField} eq '{repository.AbsoluteUri}'";
             options.OrderBy.Add(nameof(ManifestInfo.Id));
