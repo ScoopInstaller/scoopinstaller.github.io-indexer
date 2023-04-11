@@ -7,6 +7,10 @@
             "Host.Results": "Information", // Required to get proper monitor on Azure
             "Host.Aggregator": "Information", // Required to get proper monitor on Azure
             "Function": "Information"
+        },
+        "applicationInsights": {
+            "enableDependencyTracking": false,
+            "enablePerformanceCountersCollection": false
         }
     },
     "functionTimeout": "00:09:59",

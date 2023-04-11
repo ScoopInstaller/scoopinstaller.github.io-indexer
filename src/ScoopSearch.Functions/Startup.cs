@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -26,31 +26,18 @@ namespace ScoopSearch.Functions
                 .Configure<IConfiguration>((options, configuration) => configuration.GetSection(BucketsOptions.Key).Bind(options));
             builder.Services
                 .AddOptions<AzureSearchOptions>()
-                .Configure<IConfiguration>((options, configuration) =>
-                {
-                    foreach (var key in new[] { "AzureSearchServiceUrl", "AzureSearchAdminApiKey", "AzureSearchIndexName" })
-                    {
-                        if (configuration[key] == null)
-                        {
-                            throw new InvalidOperationException($"'{key}' is not set");
-                        }
-                    }
-
-                    options.ServiceUrl = new Uri(configuration["AzureSearchServiceUrl"]);
-                    options.AdminApiKey = configuration["AzureSearchAdminApiKey"];
-                    options.IndexName = configuration["AzureSearchIndexName"];
-                });
+                .Configure((options, value) => options.ServiceUrl = new Uri(value), "AzureSearchServiceUrl")
+                .Configure((options, value) => options.AdminApiKey = value, "AzureSearchAdminApiKey")
+                .Configure((options, value) => options.IndexName = value, "AzureSearchIndexName");
+            builder.Services
+                .AddOptions<AzureLogsMonitorOptions>()
+                .Configure((options, value) => options.TenantId = value, "AzureLogsMonitorTenantId")
+                .Configure((options, value) => options.ClientId = value, "AzureLogsMonitorClientId")
+                .Configure((options, value) => options.ClientSecret = value, "AzureLogsMonitorClientSecret")
+                .Configure((options, value) => options.WorkspaceId = value, "AzureLogsMonitorWorkspaceId");
             builder.Services
                 .AddOptions<GitHubOptions>()
-                .Configure<IConfiguration>((options, configuration) =>
-                {
-                    if (configuration["GitHubToken"] == null)
-                    {
-                        throw new InvalidOperationException("'GitHubToken' is not set");
-                    }
-
-                    options.Token = configuration["GitHubToken"];
-                });
+                .Configure((options, value) => options.Token = value, "GitHubToken");
             builder.Services
                 .AddOptions<QueuesOptions>()
                 .Configure<IConfiguration>((options, configuration) =>
