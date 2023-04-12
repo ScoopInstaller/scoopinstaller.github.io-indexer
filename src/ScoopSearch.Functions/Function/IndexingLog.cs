@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Monitor.Query;
 using Microsoft.AspNetCore.Http;
@@ -17,13 +18,15 @@ namespace ScoopSearch.Functions.Function;
 
 public class IndexingLog
 {
-    private static readonly TimeSpan DefaultLogsRange = TimeSpan.FromHours(6);
-    private static readonly TimeSpan MaxLogsRange = TimeSpan.FromDays(2);
+    private static readonly TimeSpan LogsTimeRange = TimeSpan.FromHours(24);
+    private static readonly TimeSpan CacheMaxAge = TimeSpan.FromSeconds(60);
 
     private readonly LogsQueryClient _client;
     private readonly string _workspaceId;
 
-    public IndexingLog(IOptions<AzureLogsMonitorOptions> options)
+    public delegate LogsQueryClient LogsQueryClientFactory(TokenCredential tokenCredential);
+
+    public IndexingLog(IOptions<AzureLogsMonitorOptions> options, LogsQueryClientFactory logsQueryClientFactory)
     {
         _workspaceId = options.Value.WorkspaceId;
 
@@ -32,23 +35,22 @@ public class IndexingLog
             clientId: options.Value.ClientId,
             clientSecret: options.Value.ClientSecret);
 
-        _client = new LogsQueryClient(token);
+        _client = logsQueryClientFactory(token);
     }
 
     [FunctionName("IndexingLog")]
     public async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]
-        HttpRequest request,
-        ILogger logger)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest request,
+        ILogger _)
     {
-        var logsRange = GetLogsRange(request.Query);
-
         var response = request.HttpContext.Response;
-        response.StatusCode = 200;
+        response.StatusCode = StatusCodes.Status200OK;
         response.ContentType = "text/plain";
-        await using var streamWriter = new StreamWriter(response.Body);
+        response.Headers.Add("Cache-Control", $"public, no-store, max-age={(int)CacheMaxAge.TotalSeconds}");
 
-        await foreach (var row in GetLogsAsync(logsRange))
+        var streamWriter = new StreamWriter(response.Body);
+
+        await foreach (var row in GetLogsAsync())
         {
             await streamWriter.WriteLineAsync(row);
         }
@@ -58,59 +60,52 @@ public class IndexingLog
         return new EmptyResult();
     }
 
-    private TimeSpan GetLogsRange(IQueryCollection requestQuery)
+    private async IAsyncEnumerable<string> GetLogsAsync()
     {
-
-        if (requestQuery.TryGetValue("logs_range", out var value)
-            && int.TryParse(value, out var logsRangeHours)
-            && logsRangeHours > 0
-            && logsRangeHours <= MaxLogsRange.TotalHours)
-        {
-            return TimeSpan.FromHours(logsRangeHours);
-        }
-
-        return DefaultLogsRange;
-    }
-
-    private async IAsyncEnumerable<string> GetLogsAsync(TimeSpan logsRange)
-    {
-        var timeRange = new QueryTimeRange(logsRange);
-
-        var tracesLogsTask = _client.QueryWorkspaceAsync(
+        var logs = await _client.QueryWorkspaceAsync(
             _workspaceId,
-            @"AppTraces
-                    | where OperationName != """"
-                    | where SeverityLevel != 3 // skip errors because we aggregate them below
-                    | project Timestamp = TimeGenerated, Message = Message, OperationId = OperationId",
-            timeRange);
+            $@"let last_execution_time = toscalar(AppTraces
+                | where OperationName == ""DispatchBucketsCrawler"" and Message startswith ""Executing""
+                | order by TimeGenerated desc
+                | take 1
+                | project TimeGenerated);
+               AppTraces
+                | where TimeGenerated >= last_execution_time // Retrieve only logs from the last execution
+                | summarize FirstTimeGenerated=min(TimeGenerated) by OperationId
+                | join kind=inner (
+                    AppTraces
+                    | project TimeGenerated, Message, OperationId, OperationName, Properties
+                ) on OperationId
+                | join kind=leftouter (
+                    AppExceptions
+                    | extend Message = tostring(Properties.FormattedMessage)
+                ) on OperationId, Message
+                | where OperationName in (""{nameof(DispatchBucketsCrawler)}"", ""{nameof(BucketCrawler)}"") // Retrieve only logs about the indexing functions
+                    //and Properties.Category !in (""Function.BucketCrawler"") // Ignore logs system logs for BucketCrawler function
+                | sort by FirstTimeGenerated asc, TimeGenerated asc
+                | project TimeGenerated, Message, Error = OuterMessage, OperationId",
+            new QueryTimeRange(LogsTimeRange));
 
-        var exceptionsLogsTask = _client.QueryWorkspaceAsync(
-            _workspaceId,
-            @"AppExceptions
-                    | project Timestamp = TimeGenerated, Message = Properties.FormattedMessage, Error = OuterMessage, OperationId = OperationId",
-            timeRange);
-
-        await Task.WhenAll(tracesLogsTask, exceptionsLogsTask);
-        var tracesTable = tracesLogsTask.Result.Value.Table;
-        var exceptionsTable = exceptionsLogsTask.Result.Value.Table;
-
-        var tracesGroups = tracesTable.Rows.GroupBy(_ => _["OperationId"]).OrderBy(_ => _.First()["Timestamp"]);
-        var exceptionsGroups = exceptionsTable.Rows.GroupBy(_ => _["OperationId"]);
-
-        foreach (var tracesGroup in tracesGroups)
+        string? lastOperationId = logs.Value.Table.Rows.FirstOrDefault()?.GetString("OperationId");
+        foreach (var row in logs.Value.Table.Rows)
         {
-            var messages = new List<(DateTimeOffset Timestamp, string Text)>();
-            tracesGroup.ForEach(_ => messages.Add((_.GetDateTimeOffset("Timestamp")!.Value, _.GetString("Message"))));
-
-            var exceptions = exceptionsGroups.SingleOrDefault(_ => _.Key.Equals(tracesGroup.Key));
-            exceptions?.ForEach(_ => messages.Add((_.GetDateTimeOffset("Timestamp")!.Value, $"{_.GetString("Message")} (details: {_.GetString("Error")})")));
-
-            foreach (var message in messages.OrderBy(_ => _.Timestamp))
+            var currentOperationId = row.GetString("OperationId");
+            if (lastOperationId != currentOperationId)
             {
-                yield return $"{message.Timestamp:u}: {message.Text}";
+                lastOperationId = currentOperationId;
+                yield return Environment.NewLine;
             }
 
-            yield return Environment.NewLine;
+            var timestamp = row.GetDateTimeOffset("TimeGenerated");
+            var message = row.GetString("Message");
+
+            yield return $"{timestamp:u}: {message}";
+
+            var error = row.GetString("Error");
+            if (!string.IsNullOrEmpty(error))
+            {
+                yield return $"{timestamp:u}: ERROR => {error}";
+            }
         }
     }
 }

@@ -1,11 +1,13 @@
 using System;
 using System.IO;
+using Azure.Monitor.Query;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Castle.DynamicProxy;
 using Microsoft.Azure.WebJobs.Host;
 using ScoopSearch.Functions.Configuration;
+using ScoopSearch.Functions.Function;
 using ScoopSearch.Functions.Git;
 using ScoopSearch.Functions.GitHub;
 using ScoopSearch.Functions.Indexer;
@@ -55,6 +57,7 @@ namespace ScoopSearch.Functions
             builder.Services.AddSingleton<IIndexer, AzureSearchIndexer>();
             builder.Services.AddSingleton<AzureSearchIndex>();
             builder.Services.AddSingleton<IKeyGenerator, KeyGenerator>();
+            builder.Services.AddSingleton<IndexingLog.LogsQueryClientFactory>(_ => new LogsQueryClient(_));
 
             // Decorate some classes with interceptors
             builder.Services.AddSingleton<IAsyncInterceptor, TimingInterceptor>();
