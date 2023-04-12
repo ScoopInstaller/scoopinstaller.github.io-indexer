@@ -52,12 +52,13 @@ public class DispatchBucketsCrawlerTests : IClassFixture<HostFixture>
         asyncCollectorMock.Verify(_ => _.AddAsync(It.IsAny<QueueItem>(), It.IsAny<CancellationToken>()), Times.AtLeast(expectedAtLeastBucketsCount));
         asyncCollectorMock.VerifyNoOtherCalls();
 
-        _logger.Should().Log(LogLevel.Information, $"Found {expectedOfficialBucketsCount} official buckets.");
+        _logger.Should().Log(LogLevel.Information, "Retrieving buckets from sources");
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, $"Found {expectedOfficialBucketsCount} official buckets.+"));
         _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d{4} buckets on GitHub\."));
-        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to ignore\."));
-        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to ignore from external list\."));
-        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to manually add\."));
-        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to manually add from external list\."));
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to ignore \(settings\.json\)\."));
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to ignore from external list.+"));
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to add \(settings\.json\)\."));
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to add from external list.+"));
         _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"\d+ buckets to remove from the index\."));
         _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Adding \d{4} buckets for indexing\."));
         _logger.Should().Log(LogLevel.Debug, _ => _.StartsWith("Adding bucket"), Times.AtLeast(expectedAtLeastBucketsCount));

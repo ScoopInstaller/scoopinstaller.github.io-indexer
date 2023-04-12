@@ -44,6 +44,7 @@ namespace ScoopSearch.Functions.Function
             ILogger logger,
             CancellationToken cancellationToken)
         {
+            logger.LogInformation("Retrieving buckets from sources");
             var officialBucketsTask = RetrieveOfficialBucketsAsync(cancellationToken);
             var githubBucketsTask = SearchForBucketsOnGitHubAsync(cancellationToken);
             var ignoredBucketsTask = RetrieveBucketsAsync(this._bucketOptions.IgnoredBucketsListUrl, logger, false, cancellationToken);
@@ -51,12 +52,12 @@ namespace ScoopSearch.Functions.Function
 
             await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
 
-            logger.LogInformation($"Found {officialBucketsTask.Result.Count} official buckets.");
+            logger.LogInformation($"Found {officialBucketsTask.Result.Count} official buckets ({_bucketOptions.OfficialBucketsListUrl}).");
             logger.LogInformation($"Found {githubBucketsTask.Result.Count} buckets on GitHub.");
-            logger.LogInformation($"Found {_bucketOptions.IgnoredBuckets.Count} buckets to ignore.");
-            logger.LogInformation($"Found {ignoredBucketsTask.Result.Count} buckets to ignore from external list.");
-            logger.LogInformation($"Found {_bucketOptions.ManualBuckets.Count} buckets to manually add.");
-            logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to manually add from external list.");
+            logger.LogInformation($"Found {_bucketOptions.IgnoredBuckets.Count} buckets to ignore (settings.json).");
+            logger.LogInformation($"Found {ignoredBucketsTask.Result.Count} buckets to ignore from external list ({_bucketOptions.IgnoredBucketsListUrl}).");
+            logger.LogInformation($"Found {_bucketOptions.ManualBuckets.Count} buckets to add (settings.json).");
+            logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to add from external list ({_bucketOptions.ManualBucketsListUrl}).");
 
             var allBuckets = githubBucketsTask.Result.Keys
                 .Concat(officialBucketsTask.Result)
@@ -125,7 +126,7 @@ namespace ScoopSearch.Functions.Function
 
                                 if (request.RequestUri != new Uri(uri))
                                 {
-                                    logger.LogWarning($"'{uri}' redirects to '{request.RequestUri}' (from '{bucketsList}')");
+                                    logger.LogDebug($"'{uri}' redirects to '{request.RequestUri}' (from '{bucketsList}')");
                                 }
 
                                 buckets.Add(request.RequestUri);
