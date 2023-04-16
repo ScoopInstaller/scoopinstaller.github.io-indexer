@@ -45,6 +45,7 @@ namespace ScoopSearch.Functions.Manifest
                 {
                     if (commitCache.TryGetValue(filePath, out var commits) && commits.FirstOrDefault() is { } commit)
                     {
+                        var manifestData = repository.ReadContent(filePath);
                         var manifestMetadata = new ManifestMetadata(
                             bucketUri.AbsoluteUri,
                             repository.GetBranchName(),
@@ -52,9 +53,9 @@ namespace ScoopSearch.Functions.Manifest
                             commit.AuthorName,
                             commit.AuthorEmail,
                             commit.Date,
-                            commit.Sha);
+                            commit.Sha,
+                            manifestData.Sha1Sum());
 
-                        var manifestData = repository.ReadContent(filePath);
                         var manifest = CreateManifest(manifestData, manifestMetadata);
                         if (manifest != null)
                         {

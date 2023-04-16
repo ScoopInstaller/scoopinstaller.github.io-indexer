@@ -32,6 +32,7 @@ namespace ScoopSearch.Functions.Manifest
             {
                 return x.Id == y.Id
                        && x.Metadata.Sha == y.Metadata.Sha
+                       && x.Metadata.ManifestHash == y.Metadata.ManifestHash
                        && x.Metadata.RepositoryStars == y.Metadata.RepositoryStars
                        && x.Metadata.OfficialRepositoryNumber == y.Metadata.OfficialRepositoryNumber;
             }
@@ -45,7 +46,7 @@ namespace ScoopSearch.Functions.Manifest
         {
             if (_exactComparer)
             {
-                return HashCode.Combine(obj.Id, obj.Metadata.Sha, obj.Metadata.RepositoryStars);
+                return HashCode.Combine(obj.Id, obj.Metadata.Sha, obj.Metadata.ManifestHash, obj.Metadata.RepositoryStars, obj.Metadata.OfficialRepositoryNumber);
             }
             else
             {

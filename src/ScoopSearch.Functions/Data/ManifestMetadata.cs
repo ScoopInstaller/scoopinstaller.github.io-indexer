@@ -23,7 +23,8 @@ namespace ScoopSearch.Functions.Data
             string authorName,
             string authorMail,
             DateTimeOffset committed,
-            string sha)
+            string sha,
+            string manifestHash)
         {
             Repository = repository;
             BranchName = branchName;
@@ -32,6 +33,7 @@ namespace ScoopSearch.Functions.Data
             AuthorMail = authorMail;
             Committed = committed;
             Sha = sha;
+            ManifestHash = manifestHash;
         }
 
         [SearchableField(IsFilterable = true, IsSortable = true, IsFacetable = true, AnalyzerName = AzureSearchIndex.UrlAnalyzer)]
@@ -73,6 +75,10 @@ namespace ScoopSearch.Functions.Data
         [SimpleField(IsFilterable = true)]
         [JsonInclude]
         public string Sha { get; private set; } = null!;
+
+        [SimpleField(IsFilterable = true, IsSortable = true, IsFacetable = true)]
+        [JsonInclude]
+        public string ManifestHash { get; private set; } = null!;
 
         public void SetRepositoryMetadata(bool officialRepository, int repositoryStars)
         {

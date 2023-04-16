@@ -1,15 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Polly;
-using ScoopSearch.Functions.Configuration;
+using System.Security.Cryptography;
 
 namespace ScoopSearch.Functions;
 
@@ -21,5 +13,12 @@ public static class Extensions
         {
             action(element);
         }
+    }
+
+    public static string Sha1Sum(this string @this)
+    {
+        using var sha1 = SHA1.Create();
+        var hash = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(@this));
+        return string.Concat(hash.Select(b => b.ToString("x2")));
     }
 }
