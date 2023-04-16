@@ -82,7 +82,7 @@ public class IndexingLog
                 ) on OperationId, Message
                 | where OperationName in (""{nameof(DispatchBucketsCrawler)}"", ""{nameof(BucketCrawler)}"") // Retrieve only logs about the indexing functions
                     //and Properties.Category !in (""Function.BucketCrawler"") // Ignore logs system logs for BucketCrawler function
-                | sort by FirstTimeGenerated asc, TimeGenerated asc
+                | sort by FirstTimeGenerated asc, OperationId, TimeGenerated asc
                 | project TimeGenerated, Message, Error = OuterMessage, OperationId",
             new QueryTimeRange(LogsTimeRange));
 
