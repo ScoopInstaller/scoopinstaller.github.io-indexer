@@ -13,6 +13,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScoopSearch.Functions.Configuration;
+using ScoopSearch.Functions.Function.Indexing;
 
 namespace ScoopSearch.Functions.Function;
 
@@ -65,7 +66,7 @@ public class IndexingLog
         var logs = await _client.QueryWorkspaceAsync(
             _workspaceId,
             $@"let last_execution_time = toscalar(AppTraces
-                | where OperationName == ""DispatchBucketsCrawler"" and Message startswith ""Executing""
+                | where OperationName == ""{nameof(FetchBucketsActivity.FetchBuckets)}"" and Message startswith ""Executing""
                 | order by TimeGenerated desc
                 | take 1
                 | project TimeGenerated);
@@ -80,7 +81,7 @@ public class IndexingLog
                     AppExceptions
                     | extend Message = tostring(Properties.FormattedMessage)
                 ) on OperationId, Message
-                | where OperationName in (""{nameof(DispatchBucketsCrawler)}"", ""{nameof(BucketCrawler)}"") // Retrieve only logs about the indexing functions
+                | where OperationName in (""{nameof(FetchBucketsActivity.FetchBuckets)}"", ""{nameof(BucketCrawlerActivity.CrawlBucket)}"") // Retrieve only logs about the indexing functions
                     //and Properties.Category !in (""Function.BucketCrawler"") // Ignore logs system logs for BucketCrawler function
                 | sort by FirstTimeGenerated asc, TimeGenerated asc
                 | project TimeGenerated, Message, Error = OuterMessage, OperationId",
