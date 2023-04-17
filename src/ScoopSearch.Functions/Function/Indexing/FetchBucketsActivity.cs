@@ -70,7 +70,7 @@ public class FetchBucketsActivity
 
         await CleanIndexFromNonExistentBucketsAsync(allBuckets, logger, cancellationToken);
 
-        logger.LogInformation($"Adding {allBuckets} buckets for indexing.");
+        logger.LogInformation($"Adding {allBuckets.Count} buckets for indexing.");
         var bucketsToIndexTasks = allBuckets.Select(async x =>
         {
             var stars = githubBucketsTask.Result.TryGetValue(x, out var value) ? value : (await _gitHubClient.GetRepoAsync(x, cancellationToken))?.Stars ?? -1;
