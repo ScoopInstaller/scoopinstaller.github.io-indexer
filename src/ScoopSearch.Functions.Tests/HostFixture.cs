@@ -1,6 +1,8 @@
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ScoopSearch.Functions.Tests.Helpers;
@@ -10,8 +12,6 @@ namespace ScoopSearch.Functions.Tests;
 
 public class HostFixture : IDisposable
 {
-    private const LogLevel MinimumLogLevel = LogLevel.Debug;
-
     private readonly Lazy<IHost> _lazyHost;
 
     private ITestOutputHelper? _testOutputHelper;
@@ -63,7 +63,11 @@ public class HostFixture : IDisposable
                     .Returns<string>(loggerName => new XUnitLogger(loggerName, _testOutputHelper));
 
                 builder.AddProvider(loggerProviderMock.Object);
-                builder.SetMinimumLevel(MinimumLogLevel);
+                builder.SetMinimumLevel(LogLevel.Trace);
+            })
+            .ConfigureServices(services =>
+            {
+                services.RemoveAll<IHttpMessageHandlerBuilderFilter>(); // Remove HttpClient logging
             })
             .Build();
 
