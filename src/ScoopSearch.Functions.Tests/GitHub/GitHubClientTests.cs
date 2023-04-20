@@ -34,7 +34,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     public async void GetAsStringAsync_OfficialBuckets_ReturnsDictionaryOfBuckets()
     {
         // Arrange
-        var bucketsListUri = new Uri("https://raw.githubusercontent.com/lukesampson/scoop/master/buckets.json");
+        var bucketsListUri = new Uri("https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/buckets.json");
 
         // Act
         var result = await _sut.GetAsStringAsync(bucketsListUri, CancellationToken.None);
