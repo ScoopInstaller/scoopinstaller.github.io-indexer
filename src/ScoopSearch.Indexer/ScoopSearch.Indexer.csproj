@@ -2,8 +2,8 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
-    <AssemblyName>ScoopSearch.Functions</AssemblyName>
-    <RootNamespace>ScoopSearch.Functions</RootNamespace>
+    <AssemblyName>ScoopSearch.Indexer</AssemblyName>
+    <RootNamespace>ScoopSearch.Indexer</RootNamespace>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>Nullable</WarningsAsErrors>
   </PropertyGroup>
@@ -34,7 +34,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="ScoopSearch.Functions.Tests" />
+    <InternalsVisibleTo Include="ScoopSearch.Indexer.Tests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 </Project>
