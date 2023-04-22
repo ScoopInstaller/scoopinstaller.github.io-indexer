@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScoopSearch.Indexer.Tests", "ScoopSearch.Indexer.Tests\ScoopSearch.Indexer.Tests.csproj", "{4601E216-A642-4A5B-B061-49A148D3F3F6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScoopSearch.Indexer.Console", "ScoopSearch.Indexer.Console\ScoopSearch.Indexer.Console.csproj", "{7AD6B19A-C1B4-48A2-8499-CCE36CBFC9D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,6 +32,10 @@ Global
 		{4601E216-A642-4A5B-B061-49A148D3F3F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4601E216-A642-4A5B-B061-49A148D3F3F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4601E216-A642-4A5B-B061-49A148D3F3F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7AD6B19A-C1B4-48A2-8499-CCE36CBFC9D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AD6B19A-C1B4-48A2-8499-CCE36CBFC9D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AD6B19A-C1B4-48A2-8499-CCE36CBFC9D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AD6B19A-C1B4-48A2-8499-CCE36CBFC9D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
