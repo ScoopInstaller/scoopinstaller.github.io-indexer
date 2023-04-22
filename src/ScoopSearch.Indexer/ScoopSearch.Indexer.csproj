@@ -1,11 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
-    <AssemblyName>ScoopSearch.Indexer</AssemblyName>
-    <RootNamespace>ScoopSearch.Indexer</RootNamespace>
-    <Nullable>enable</Nullable>
-    <WarningsAsErrors>Nullable</WarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Monitor.Query" Version="1.1.0" />
