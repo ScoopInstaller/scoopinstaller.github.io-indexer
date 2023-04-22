@@ -1,12 +1,8 @@
-﻿using ScoopSearch.Functions.Data;
-using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using ScoopSearch.Indexer.Data;
 
-namespace ScoopSearch.Functions.Manifest
+namespace ScoopSearch.Indexer.Manifest;
+
+public interface IManifestCrawler
 {
-    public interface IManifestCrawler
-    {
-        IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken);
-    }
+    IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken);
 }

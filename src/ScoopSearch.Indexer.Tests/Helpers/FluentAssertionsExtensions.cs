@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using Moq;
 using Xunit.Abstractions;
 
-namespace ScoopSearch.Functions.Tests.Helpers;
+namespace ScoopSearch.Indexer.Tests.Helpers;
 
 public static class FluentExtensions
 {

@@ -1,7 +1,7 @@
 using FluentAssertions;
-using ScoopSearch.Functions.Data;
+using ScoopSearch.Indexer.Data;
 
-namespace ScoopSearch.Functions.Tests.Manifest;
+namespace ScoopSearch.Indexer.Tests.Manifest;
 
 public class ManifestInfoDeserializationTests
 {

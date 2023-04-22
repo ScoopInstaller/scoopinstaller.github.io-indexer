@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using ScoopSearch.Functions.Data;
+﻿using ScoopSearch.Indexer.Data;
 
-namespace ScoopSearch.Functions.Git
+namespace ScoopSearch.Indexer.Git;
+
+public interface IGitRepository
 {
-    public interface IGitRepository
-    {
-        void Delete();
+    void Delete();
 
-        IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>> GetCommitsCache(Predicate<string> filter, CancellationToken cancellationToken);
+    IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>> GetCommitsCache(Predicate<string> filter, CancellationToken cancellationToken);
 
-        string GetBranchName();
+    string GetBranchName();
 
-        IEnumerable<string> GetFilesFromIndex();
+    IEnumerable<string> GetFilesFromIndex();
 
-        string ReadContent(string filePath);
-    }
+    string ReadContent(string filePath);
 }

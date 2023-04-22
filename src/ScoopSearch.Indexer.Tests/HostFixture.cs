@@ -3,10 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
-using ScoopSearch.Functions.Tests.Helpers;
+using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
 
-namespace ScoopSearch.Functions.Tests;
+namespace ScoopSearch.Indexer.Tests;
 
 public class HostFixture : IDisposable
 {

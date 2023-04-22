@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace ScoopSearch.Functions.Tests.Helpers;
+namespace ScoopSearch.Indexer.Tests.Helpers;
 
 public static class LoggerMockExtensions
 {

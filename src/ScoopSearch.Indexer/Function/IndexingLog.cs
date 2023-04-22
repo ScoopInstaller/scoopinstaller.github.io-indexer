@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
 using Azure.Monitor.Query;
@@ -12,9 +7,9 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ScoopSearch.Functions.Configuration;
+using ScoopSearch.Indexer.Configuration;
 
-namespace ScoopSearch.Functions.Function;
+namespace ScoopSearch.Indexer.Function;
 
 public class IndexingLog
 {

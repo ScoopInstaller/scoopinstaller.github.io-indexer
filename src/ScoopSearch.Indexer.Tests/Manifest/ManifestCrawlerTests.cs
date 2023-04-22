@@ -3,14 +3,14 @@ using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Extensions;
 using Moq;
-using ScoopSearch.Functions.Data;
-using ScoopSearch.Functions.Git;
-using ScoopSearch.Functions.Manifest;
-using ScoopSearch.Functions.Tests.Helpers;
+using ScoopSearch.Indexer.Data;
+using ScoopSearch.Indexer.Git;
+using ScoopSearch.Indexer.Manifest;
+using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-namespace ScoopSearch.Functions.Tests.Manifest;
+namespace ScoopSearch.Indexer.Tests.Manifest;
 
 public class ManifestCrawlerTests
 {

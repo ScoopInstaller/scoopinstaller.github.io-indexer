@@ -1,4 +1,4 @@
-namespace ScoopSearch.Functions.Tests.Helpers;
+namespace ScoopSearch.Indexer.Tests.Helpers;
 
 public static class Disposable
 {

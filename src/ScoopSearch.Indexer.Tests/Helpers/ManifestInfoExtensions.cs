@@ -1,7 +1,7 @@
 using System.Text.Json;
-using ScoopSearch.Functions.Data;
+using ScoopSearch.Indexer.Data;
 
-namespace ScoopSearch.Functions.Tests.Helpers;
+namespace ScoopSearch.Indexer.Tests.Helpers;
 
 public static class ManifestInfoExtensions
 {

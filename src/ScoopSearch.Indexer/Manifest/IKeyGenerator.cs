@@ -1,9 +1,8 @@
-﻿using ScoopSearch.Functions.Data;
+﻿using ScoopSearch.Indexer.Data;
 
-namespace ScoopSearch.Functions.Manifest
+namespace ScoopSearch.Indexer.Manifest;
+
+public interface IKeyGenerator
 {
-    public interface IKeyGenerator
-    {
-        string Generate(ManifestMetadata manifestMetadata);
-    }
+    string Generate(ManifestMetadata manifestMetadata);
 }

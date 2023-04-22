@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit.Abstractions;
 
-namespace ScoopSearch.Functions.Tests.Helpers;
+namespace ScoopSearch.Indexer.Tests.Helpers;
 
 public class XUnitLogger : ILogger
 {

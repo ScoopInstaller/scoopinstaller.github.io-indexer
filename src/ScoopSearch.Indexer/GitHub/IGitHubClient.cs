@@ -1,10 +1,6 @@
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using ScoopSearch.Functions.Data;
+using ScoopSearch.Indexer.Data;
 
-namespace ScoopSearch.Functions.GitHub;
+namespace ScoopSearch.Indexer.GitHub;
 
 public interface IGitHubClient
 {

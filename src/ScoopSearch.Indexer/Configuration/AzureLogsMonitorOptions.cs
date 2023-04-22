@@ -1,4 +1,4 @@
-﻿namespace ScoopSearch.Functions.Configuration;
+﻿namespace ScoopSearch.Indexer.Configuration;
 
 public class AzureLogsMonitorOptions
 {

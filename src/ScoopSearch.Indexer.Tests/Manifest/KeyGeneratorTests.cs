@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
-using ScoopSearch.Functions.Data;
-using ScoopSearch.Functions.Manifest;
+using ScoopSearch.Indexer.Data;
+using ScoopSearch.Indexer.Manifest;
 
-namespace ScoopSearch.Functions.Tests.Manifest;
+namespace ScoopSearch.Indexer.Tests.Manifest;
 
 public class KeyGeneratorTests
 {

@@ -1,10 +1,6 @@
-﻿using System;
-using System.Threading;
+﻿namespace ScoopSearch.Indexer.Git;
 
-namespace ScoopSearch.Functions.Git
+public interface IGitRepositoryProvider
 {
-    public interface IGitRepositoryProvider
-    {
-        IGitRepository? Download(Uri uri, CancellationToken cancellationToken);
-    }
+    IGitRepository? Download(Uri uri, CancellationToken cancellationToken);
 }

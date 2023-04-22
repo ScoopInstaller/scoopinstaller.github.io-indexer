@@ -1,11 +1,7 @@
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
-using ScoopSearch.Functions.Data;
+using ScoopSearch.Indexer.Data;
 
-namespace ScoopSearch.Functions.GitHub;
+namespace ScoopSearch.Indexer.GitHub;
 
 internal class GitHubClient : IGitHubClient
 {

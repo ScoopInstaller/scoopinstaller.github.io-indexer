@@ -2,12 +2,12 @@ using System.Reflection;
 using FluentAssertions;
 using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
-using ScoopSearch.Functions.Git;
-using ScoopSearch.Functions.Tests.Helpers;
+using ScoopSearch.Indexer.Git;
+using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-namespace ScoopSearch.Functions.Tests.Git;
+namespace ScoopSearch.Indexer.Tests.Git;
 
 public class GitRepositoryFactoryTests : IDisposable
 {

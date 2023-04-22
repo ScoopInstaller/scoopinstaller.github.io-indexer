@@ -5,15 +5,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using ScoopSearch.Functions.Configuration;
-using ScoopSearch.Functions.Data;
-using ScoopSearch.Functions.Function;
-using ScoopSearch.Functions.GitHub;
-using ScoopSearch.Functions.Indexer;
-using ScoopSearch.Functions.Tests.Helpers;
+using ScoopSearch.Indexer.Configuration;
+using ScoopSearch.Indexer.Data;
+using ScoopSearch.Indexer.Function;
+using ScoopSearch.Indexer.GitHub;
+using ScoopSearch.Indexer.Indexer;
+using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
 
-namespace ScoopSearch.Functions.Tests;
+namespace ScoopSearch.Indexer.Tests.Function;
 
 public class DispatchBucketsCrawlerTests : IClassFixture<HostFixture>
 {

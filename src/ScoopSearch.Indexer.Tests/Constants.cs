@@ -1,4 +1,4 @@
-namespace ScoopSearch.Functions.Tests;
+namespace ScoopSearch.Indexer.Tests;
 
 public static class Constants
 {

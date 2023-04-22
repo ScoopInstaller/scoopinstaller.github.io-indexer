@@ -1,10 +1,10 @@
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using ScoopSearch.Functions.GitHub;
+using ScoopSearch.Indexer.GitHub;
 using Xunit.Abstractions;
 
-namespace ScoopSearch.Functions.Tests.GitHub;
+namespace ScoopSearch.Indexer.Tests.GitHub;
 
 public class GitHubClientTests : IClassFixture<HostFixture>
 {

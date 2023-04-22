@@ -1,4 +1,3 @@
-using System.Net;
 using Azure;
 using Azure.Identity;
 using Azure.Monitor.Query;
@@ -10,10 +9,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using ScoopSearch.Functions.Configuration;
-using ScoopSearch.Functions.Function;
+using ScoopSearch.Indexer.Configuration;
+using ScoopSearch.Indexer.Function;
 
-namespace ScoopSearch.Functions.Tests;
+namespace ScoopSearch.Indexer.Tests.Function;
 
 public class IndexingLogTests : IClassFixture<HostFixture>
 {

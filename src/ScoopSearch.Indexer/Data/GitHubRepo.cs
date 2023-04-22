@@ -1,18 +1,16 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
-namespace ScoopSearch.Functions.Data
+namespace ScoopSearch.Indexer.Data;
+
+public class GitHubRepo
 {
-    public class GitHubRepo
+    [JsonConstructor]
+    private GitHubRepo()
     {
-        [JsonConstructor]
-        private GitHubRepo()
-        {
-        }
-
-        [JsonProperty("html_url")] public Uri HtmlUri { get; private set; } = null!;
-
-        [JsonProperty("stargazers_count")]
-        public int Stars { get; private set; }
     }
+
+    [JsonProperty("html_url")] public Uri HtmlUri { get; private set; } = null!;
+
+    [JsonProperty("stargazers_count")]
+    public int Stars { get; private set; }
 }

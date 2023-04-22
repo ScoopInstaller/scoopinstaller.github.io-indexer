@@ -1,6 +1,4 @@
-using System;
-
-namespace ScoopSearch.Functions.Data;
+namespace ScoopSearch.Indexer.Data;
 
 public class CommitInfo
 {

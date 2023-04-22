@@ -1,22 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace ScoopSearch.Indexer.Configuration;
 
-namespace ScoopSearch.Functions.Configuration
+public class BucketsOptions
 {
-    public class BucketsOptions
-    {
-        public const string Key = "Buckets";
+    public const string Key = "Buckets";
 
-        public Uri OfficialBucketsListUrl { get; set; } = null!;
+    public Uri OfficialBucketsListUrl { get; set; } = null!;
 
-        public List<Uri> GithubBucketsSearchQueries { get; set; } = new List<Uri>();
+    public List<Uri> GithubBucketsSearchQueries { get; set; } = new List<Uri>();
 
-        public HashSet<Uri> IgnoredBuckets { get; set; } = new HashSet<Uri>();
+    public HashSet<Uri> IgnoredBuckets { get; set; } = new HashSet<Uri>();
 
-        public Uri IgnoredBucketsListUrl { get; set; } = null!;
+    public Uri IgnoredBucketsListUrl { get; set; } = null!;
 
-        public HashSet<Uri> ManualBuckets { get; set; } = new HashSet<Uri>();
+    public HashSet<Uri> ManualBuckets { get; set; } = new HashSet<Uri>();
 
-        public Uri ManualBucketsListUrl { get; set; }= null!;
-    }
+    public Uri ManualBucketsListUrl { get; set; }= null!;
 }

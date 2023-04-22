@@ -2,14 +2,14 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using ScoopSearch.Functions.Data;
-using ScoopSearch.Functions.Function;
-using ScoopSearch.Functions.Indexer;
-using ScoopSearch.Functions.Manifest;
-using ScoopSearch.Functions.Tests.Helpers;
+using ScoopSearch.Indexer.Data;
+using ScoopSearch.Indexer.Function;
+using ScoopSearch.Indexer.Indexer;
+using ScoopSearch.Indexer.Manifest;
+using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
 
-namespace ScoopSearch.Functions.Tests;
+namespace ScoopSearch.Indexer.Tests.Function;
 
 public class BucketCrawlerTests : IClassFixture<HostFixture>
 {

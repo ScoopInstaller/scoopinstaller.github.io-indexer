@@ -1,17 +1,13 @@
-using System;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
-using ScoopSearch.Functions.Configuration;
+using ScoopSearch.Indexer.Configuration;
 
-namespace ScoopSearch.Functions;
+namespace ScoopSearch.Indexer.Extensions;
 
 public static class ServiceCollectionExtensions
 {

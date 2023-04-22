@@ -1,7 +1,6 @@
-﻿namespace ScoopSearch.Functions.Configuration
+﻿namespace ScoopSearch.Indexer.Configuration;
+
+public class GitHubOptions
 {
-    public class GitHubOptions
-    {
-        public string Token { get; set; } = null!;
-    }
+    public string Token { get; set; } = null!;
 }

@@ -3,12 +3,12 @@ using FluentAssertions;
 using FluentAssertions.Extensions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using ScoopSearch.Functions.Data;
-using ScoopSearch.Functions.Git;
-using ScoopSearch.Functions.Tests.Helpers;
+using ScoopSearch.Indexer.Data;
+using ScoopSearch.Indexer.Git;
+using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
 
-namespace ScoopSearch.Functions.Tests.Git;
+namespace ScoopSearch.Indexer.Tests.Git;
 
 public class GitRepositoryTests : IDisposable
 {
