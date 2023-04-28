@@ -87,7 +87,7 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
 
             var fetchOptions = CreateOptions<FetchOptions>(cancellationToken);
 
-            var refSpecs = remote.FetchRefSpecs.Select(x => x.Specification);
+            var refSpecs = remote.FetchRefSpecs.Select(_ => _.Specification);
             Commands.Fetch(repository, remote.Name, refSpecs, fetchOptions, null);
             var result = repository.MergeFetchedRefs(
                 _signature,
@@ -113,8 +113,8 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
         where T : FetchOptionsBase, new()
     {
         var options = new T();
-        options.OnProgress = x => !cancellationToken.IsCancellationRequested;
-        options.OnTransferProgress = x => !cancellationToken.IsCancellationRequested;
+        options.OnProgress = _ => !cancellationToken.IsCancellationRequested;
+        options.OnTransferProgress = _ => !cancellationToken.IsCancellationRequested;
 
         return options;
     }

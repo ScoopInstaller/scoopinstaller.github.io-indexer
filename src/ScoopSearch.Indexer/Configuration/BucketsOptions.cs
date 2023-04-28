@@ -1,4 +1,4 @@
-﻿namespace ScoopSearch.Indexer.Configuration;
+namespace ScoopSearch.Indexer.Configuration;
 
 public class BucketsOptions
 {
@@ -14,5 +14,5 @@ public class BucketsOptions
 
     public HashSet<Uri> ManualBuckets { get; set; } = new HashSet<Uri>();
 
-    public Uri ManualBucketsListUrl { get; set; }= null!;
+    public Uri ManualBucketsListUrl { get; set; } = null!;
 }

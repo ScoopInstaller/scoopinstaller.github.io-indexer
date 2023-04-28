@@ -1,4 +1,4 @@
-namespace ScoopSearch.Indexer.Data;
+namespace ScoopSearch.Indexer.Git;
 
 public class CommitInfo
 {

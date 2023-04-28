@@ -14,9 +14,7 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
     </ItemGroup>
-
     <ItemGroup>
       <ProjectReference Include="..\ScoopSearch.Indexer\ScoopSearch.Indexer.csproj" />
     </ItemGroup>
-
 </Project>

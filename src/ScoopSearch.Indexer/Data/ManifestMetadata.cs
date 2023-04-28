@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Azure.Search.Documents.Indexes;
 using ScoopSearch.Indexer.Indexer;
 
@@ -9,6 +9,8 @@ public class ManifestMetadata
     public const string RepositoryField = nameof(ManifestInfo.Metadata) + "/" + nameof(Repository);
     public const string RepositoryStarsField = nameof(ManifestInfo.Metadata) + "/" + nameof(RepositoryStars);
     public const string ShaField = nameof(ManifestInfo.Metadata) + "/" + nameof(Sha);
+    public const string CommittedField = nameof(ManifestInfo.Metadata) + "/" + nameof(Committed);
+    public const string FilePathField = nameof(ManifestInfo.Metadata) + "/" + nameof(FilePath);
     public const string OfficialRepositoryNumberField = nameof(ManifestInfo.Metadata) + "/" + nameof(OfficialRepositoryNumber);
 
     public ManifestMetadata()

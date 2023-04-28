@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,7 +8,7 @@ using ScoopSearch.Indexer.Configuration;
 
 namespace ScoopSearch.Indexer.Extensions;
 
-public static class ServiceCollectionExtensions
+internal static class ServiceCollectionExtensions
 {
     public static IHttpClientBuilder AddHttpClient(this IServiceCollection services, string name, bool allowAutoRedirect)
     {
@@ -51,20 +50,6 @@ public static class ServiceCollectionExtensions
                         throw new NotSupportedException("Unknown forbidden error");
                     }, (_, _, _, _) => Task.CompletedTask);
             });
-    }
-
-    public static OptionsBuilder<TOptions> Configure<TOptions>(this OptionsBuilder<TOptions> @this, Action<TOptions, string> property, string key)
-        where TOptions : class, new()
-    {
-        return @this.Configure<IConfiguration>((options, configuration) =>
-        {
-            if (configuration[key] == null)
-            {
-                throw new InvalidOperationException($"'{key}' is not set");
-            }
-
-            property(options, configuration[key]);
-        });
     }
 }
 

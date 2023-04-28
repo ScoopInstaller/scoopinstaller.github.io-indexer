@@ -1,9 +1,9 @@
 ﻿using Castle.DynamicProxy;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ScoopSearch.Indexer.Interceptor;
+namespace ScoopSearch.Indexer.Console.Interceptor;
 
-public static class InterceptionExtensions
+internal static class InterceptionExtensions
 {
     private static readonly ProxyGenerator _proxyGenerator = new ProxyGenerator();
 

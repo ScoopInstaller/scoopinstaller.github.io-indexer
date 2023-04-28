@@ -1,8 +1,7 @@
-﻿namespace ScoopSearch.Indexer;
+namespace ScoopSearch.Indexer;
 
-public static class Constants
+internal static class Constants
 {
-    public const string BucketsQueue = "scoopsearch-buckets";
     public const string GitHubHttpClientName = "GitHub";
     public const string GitHubHttpClientNoRedirectName = "GitHubNoRedirect";
 }

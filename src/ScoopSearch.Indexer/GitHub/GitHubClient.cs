@@ -1,5 +1,4 @@
-using Newtonsoft.Json;
-using ScoopSearch.Indexer.Data;
+using System.Text.Json;
 
 namespace ScoopSearch.Indexer.GitHub;
 
@@ -46,7 +45,7 @@ internal class GitHubClient : IGitHubClient
             {
                 if (task.IsCompletedSuccessfully)
                 {
-                    return JsonConvert.DeserializeObject<GitHubRepo>(task.Result);
+                    return JsonSerializer.Deserialize<GitHubRepo>(task.Result);
                 }
                 else
                 {
@@ -58,6 +57,6 @@ internal class GitHubClient : IGitHubClient
     public async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
     {
         return await GetAsStringAsync(searchUri, cancellationToken)
-            .ContinueWith(task => JsonConvert.DeserializeObject<GitHubSearchResults>(task.Result), cancellationToken);
+            .ContinueWith(task => JsonSerializer.Deserialize<GitHubSearchResults>(task.Result), cancellationToken);
     }
 }

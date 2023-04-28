@@ -1,6 +1,8 @@
+using System.Security.Cryptography;
+
 namespace ScoopSearch.Indexer.Extensions;
 
-public static class Extensions
+internal static class Extensions
 {
     public static void ForEach<T>(this IEnumerable<T> @this, Action<T> action)
     {
@@ -8,5 +10,12 @@ public static class Extensions
         {
             action(element);
         }
+    }
+
+    public static string Sha1Sum(this string @this)
+    {
+        using var sha1 = SHA1.Create();
+        var hash = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(@this));
+        return string.Concat(hash.Select(b => b.ToString("x2")));
     }
 }

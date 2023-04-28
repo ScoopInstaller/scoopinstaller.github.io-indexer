@@ -1,23 +1,43 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Git;
+using ScoopSearch.Indexer.Manifest;
 
-namespace ScoopSearch.Indexer.Manifest;
+namespace ScoopSearch.Indexer.Processor;
 
-internal class ManifestCrawler : IManifestCrawler
+internal class FetchManifestsProcessor : IFetchManifestsProcessor
 {
     private readonly IGitRepositoryProvider _gitRepositoryProvider;
     private readonly IKeyGenerator _keyGenerator;
-    private readonly ILogger<ManifestCrawler> _logger;
+    private readonly ILogger _logger;
 
-    public ManifestCrawler(IGitRepositoryProvider gitRepositoryProvider, IKeyGenerator keyGenerator, ILogger<ManifestCrawler> logger)
+    public FetchManifestsProcessor(IGitRepositoryProvider gitRepositoryProvider, IKeyGenerator keyGenerator, ILogger<FetchManifestsProcessor> logger)
     {
         _gitRepositoryProvider = gitRepositoryProvider;
         _keyGenerator = keyGenerator;
         _logger = logger;
     }
 
-    public IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken)
+    public async Task<ManifestInfo[]> FetchManifestsAsync(BucketInfo bucketInfo, CancellationToken cancellationToken)
+    {
+        // Clone/Update bucket repository and retrieve manifests
+        _logger.LogInformation($"Generating manifests list for '{bucketInfo.Uri}'");
+
+        var manifestsFromBucket = this
+            .GetManifestsFromRepository(bucketInfo.Uri, cancellationToken)
+            .ToArray();
+
+        _logger.LogInformation($"Found {manifestsFromBucket.Length} manifests for {bucketInfo.Uri}");
+
+        foreach (var manifestInfo in manifestsFromBucket)
+        {
+            manifestInfo.Metadata.SetRepositoryMetadata(bucketInfo.Official, bucketInfo.Stars);
+        }
+
+        return await Task.FromResult(manifestsFromBucket);
+    }
+
+    private IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken)
     {
         var results = new List<ManifestInfo>();
 
@@ -36,10 +56,11 @@ internal class ManifestCrawler : IManifestCrawler
 
             foreach (var filePath in files
                          .Where(IsManifestPredicate)
-                         .TakeWhile(x => !cancellationToken.IsCancellationRequested))
+                         .TakeWhile(_ => !cancellationToken.IsCancellationRequested))
             {
                 if (commitCache.TryGetValue(filePath, out var commits) && commits.FirstOrDefault() is { } commit)
                 {
+                    var manifestData = repository.ReadContent(filePath);
                     var manifestMetadata = new ManifestMetadata(
                         bucketUri.AbsoluteUri,
                         repository.GetBranchName(),
@@ -49,7 +70,6 @@ internal class ManifestCrawler : IManifestCrawler
                         commit.Date,
                         commit.Sha);
 
-                    var manifestData = repository.ReadContent(filePath);
                     var manifest = CreateManifest(manifestData, manifestMetadata);
                     if (manifest != null)
                     {

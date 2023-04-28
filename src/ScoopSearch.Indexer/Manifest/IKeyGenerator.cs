@@ -2,7 +2,7 @@
 
 namespace ScoopSearch.Indexer.Manifest;
 
-public interface IKeyGenerator
+internal interface IKeyGenerator
 {
     string Generate(ManifestMetadata manifestMetadata);
 }

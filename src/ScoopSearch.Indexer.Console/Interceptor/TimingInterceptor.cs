@@ -2,7 +2,7 @@
 using Castle.DynamicProxy;
 using Microsoft.Extensions.Logging;
 
-namespace ScoopSearch.Indexer.Interceptor;
+namespace ScoopSearch.Indexer.Console.Interceptor;
 
 internal class TimingInterceptor : AsyncTimingInterceptor
 {

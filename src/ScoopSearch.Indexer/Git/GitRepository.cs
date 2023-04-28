@@ -1,8 +1,7 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
-using ScoopSearch.Indexer.Data;
 
 namespace ScoopSearch.Indexer.Git;
 
@@ -124,7 +123,7 @@ internal class GitRepository : IGitRepository, IDisposable
 
         _logger.LogDebug("Cache computed for repository '{WorkingDirectory}': {Count} files", _repository.Info.WorkingDirectory, commitsCache.Count);
 
-        return new ReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>(commitsCache.ToDictionary(x => x.Key, x => (IReadOnlyCollection<CommitInfo>)x.Value));
+        return new ReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>(commitsCache.ToDictionary(_ => _.Key, _ => (IReadOnlyCollection<CommitInfo>)_.Value));
     }
 
     public string GetBranchName()
@@ -135,8 +134,8 @@ internal class GitRepository : IGitRepository, IDisposable
     public IEnumerable<string> GetFilesFromIndex()
     {
         return _repository.Index
-            .Where(x => x.Mode is Mode.NonExecutableFile)
-            .Select(x => x.Path);
+            .Where(_ => _.Mode is Mode.NonExecutableFile)
+            .Select(_ => _.Path);
     }
 
     public string ReadContent(string filePath)

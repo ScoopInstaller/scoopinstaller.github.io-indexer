@@ -1,6 +1,4 @@
-﻿using ScoopSearch.Indexer.Data;
-
-namespace ScoopSearch.Indexer.Git;
+﻿namespace ScoopSearch.Indexer.Git;
 
 public interface IGitRepository
 {

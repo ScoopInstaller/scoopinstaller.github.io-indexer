@@ -2,7 +2,7 @@
 
 namespace ScoopSearch.Indexer.Manifest;
 
-public class ManifestComparer : IEqualityComparer<ManifestInfo>
+internal class ManifestComparer : IEqualityComparer<ManifestInfo>
 {
     public static readonly IEqualityComparer<ManifestInfo> ManifestIdComparer = new ManifestComparer(false);
     public static readonly IEqualityComparer<ManifestInfo> ManifestExactComparer = new ManifestComparer(true);
@@ -43,7 +43,7 @@ public class ManifestComparer : IEqualityComparer<ManifestInfo>
     {
         if (_exactComparer)
         {
-            return HashCode.Combine(obj.Id, obj.Metadata.Sha, obj.Metadata.RepositoryStars);
+            return HashCode.Combine(obj.Id, obj.Metadata.Sha, obj.Metadata.RepositoryStars, obj.Metadata.OfficialRepositoryNumber);
         }
         else
         {

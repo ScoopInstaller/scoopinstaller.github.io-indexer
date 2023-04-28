@@ -1,57 +1,50 @@
 ﻿using System.Collections.Concurrent;
 using System.Globalization;
-using Microsoft.Azure.WebJobs;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Extensions;
 using ScoopSearch.Indexer.GitHub;
-using ScoopSearch.Indexer.Indexer;
 
-namespace ScoopSearch.Indexer.Function;
+namespace ScoopSearch.Indexer.Processor;
 
-public class DispatchBucketsCrawler
+internal class FetchBucketsProcessor : IFetchBucketsProcessor
 {
     private const int ResultsPerPage = 100;
     private const int MaxDegreeOfParallelism = 8;
 
     private readonly IGitHubClient _gitHubClient;
-    private readonly IIndexer _indexer;
+    private readonly ILogger _logger;
     private readonly BucketsOptions _bucketOptions;
 
-    public DispatchBucketsCrawler(
+    public FetchBucketsProcessor(
         IGitHubClient gitHubClient,
-        IIndexer indexer,
-        IOptions<BucketsOptions> bucketOptions)
+        IOptions<BucketsOptions> bucketOptions,
+        ILogger<FetchBucketsProcessor> logger)
     {
         _gitHubClient = gitHubClient;
-        _indexer = indexer;
+        _logger = logger;
         _bucketOptions = bucketOptions.Value;
     }
 
-    [FunctionName("DispatchBucketsCrawler")]
-    public async Task Run(
-        [TimerTrigger("%DispatchBucketsCrawlerCron%")] TimerInfo timer,
-        [Queue(Constants.BucketsQueue)] IAsyncCollector<QueueItem> queue,
-        ILogger logger,
-        CancellationToken cancellationToken)
+    public async Task<BucketInfo[]> FetchBucketsAsync(CancellationToken cancellationToken)
     {
-        logger.LogInformation("Retrieving buckets from sources");
+        _logger.LogInformation("Retrieving buckets from sources");
         var officialBucketsTask = RetrieveOfficialBucketsAsync(cancellationToken);
         var githubBucketsTask = SearchForBucketsOnGitHubAsync(cancellationToken);
-        var ignoredBucketsTask = RetrieveBucketsAsync(this._bucketOptions.IgnoredBucketsListUrl, logger, false, cancellationToken);
-        var manualBucketsTask = RetrieveBucketsAsync(this._bucketOptions.ManualBucketsListUrl, logger, true, cancellationToken);
+        var ignoredBucketsTask = RetrieveBucketsAsync(this._bucketOptions.IgnoredBucketsListUrl, false, cancellationToken);
+        var manualBucketsTask = RetrieveBucketsAsync(this._bucketOptions.ManualBucketsListUrl, true, cancellationToken);
 
         await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
 
-        logger.LogInformation($"Found {officialBucketsTask.Result.Count} official buckets ({_bucketOptions.OfficialBucketsListUrl}).");
-        logger.LogInformation($"Found {githubBucketsTask.Result.Count} buckets on GitHub.");
-        logger.LogInformation($"Found {_bucketOptions.IgnoredBuckets.Count} buckets to ignore (settings.json).");
-        logger.LogInformation($"Found {ignoredBucketsTask.Result.Count} buckets to ignore from external list ({_bucketOptions.IgnoredBucketsListUrl}).");
-        logger.LogInformation($"Found {_bucketOptions.ManualBuckets.Count} buckets to add (settings.json).");
-        logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to add from external list ({_bucketOptions.ManualBucketsListUrl}).");
+        _logger.LogInformation($"Found {officialBucketsTask.Result.Count} official buckets ({_bucketOptions.OfficialBucketsListUrl}).");
+        _logger.LogInformation($"Found {githubBucketsTask.Result.Count} buckets on GitHub.");
+        _logger.LogInformation($"Found {_bucketOptions.IgnoredBuckets.Count} buckets to ignore (appsettings.json).");
+        _logger.LogInformation($"Found {ignoredBucketsTask.Result.Count} buckets to ignore from external list ({_bucketOptions.IgnoredBucketsListUrl}).");
+        _logger.LogInformation($"Found {_bucketOptions.ManualBuckets.Count} buckets to add (appsettings.json).");
+        _logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to add from external list ({_bucketOptions.ManualBucketsListUrl}).");
 
         var allBuckets = githubBucketsTask.Result.Keys
             .Concat(officialBucketsTask.Result)
@@ -61,28 +54,28 @@ public class DispatchBucketsCrawler
             .Except(ignoredBucketsTask.Result)
             .ToHashSet();
 
-        await CleanIndexFromNonExistentBucketsAsync(allBuckets, logger, cancellationToken);
-
-        var bucketsToIndexTasks = allBuckets.Select(async x =>
+        _logger.LogInformation($"{allBuckets.Count} buckets found for indexing.");
+        var bucketsToIndexTasks = allBuckets.Select(async _ =>
         {
-            var stars = githubBucketsTask.Result.TryGetValue(x, out var value) ? value : (await _gitHubClient.GetRepoAsync(x, cancellationToken))?.Stars ?? -1;
-            var official = officialBucketsTask.Result.Contains(x);
-            return new QueueItem(x, stars, official);
-        }).ToArray();
-        var bucketsToIndex = await Task.WhenAll(bucketsToIndexTasks);
+            var stars = githubBucketsTask.Result.TryGetValue(_, out var value) ? value : (await _gitHubClient.GetRepoAsync(_, cancellationToken))?.Stars ?? -1;
+            var official = officialBucketsTask.Result.Contains(_);
+            _logger.LogDebug($"Adding bucket '{_}' (stars: {stars}, official: {official}).");
 
-        await QueueBucketsForIndexingAsync(queue, bucketsToIndex, logger, cancellationToken);
+            return new BucketInfo(_, stars, official);
+        }).ToArray();
+
+        return await Task.WhenAll(bucketsToIndexTasks);
     }
 
     private async Task<HashSet<Uri>> RetrieveOfficialBucketsAsync(CancellationToken cancellationToken)
     {
         var contentJson = await _gitHubClient.GetAsStringAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken);
-        var officialBuckets = JsonConvert.DeserializeObject<Dictionary<string, string>>(contentJson)?.Values;
+        var officialBuckets = JsonSerializer.Deserialize<Dictionary<string, string>>(contentJson)?.Values;
 
-        return officialBuckets?.Select(x => new Uri(x)).ToHashSet() ?? new HashSet<Uri>();
+        return officialBuckets?.Select(_ => new Uri(_)).ToHashSet() ?? new HashSet<Uri>();
     }
 
-    private async Task<HashSet<Uri>> RetrieveBucketsAsync(Uri bucketsList, ILogger logger, bool followRedirects, CancellationToken cancellationToken)
+    private async Task<HashSet<Uri>> RetrieveBucketsAsync(Uri bucketsList, bool followRedirects, CancellationToken cancellationToken)
     {
         HashSet<Uri> buckets = new HashSet<Uri>();
         try
@@ -114,13 +107,13 @@ public class DispatchBucketsCrawler
                         {
                             if (!response.IsSuccessStatusCode)
                             {
-                                logger.LogWarning($"Skipping '{uri}' because it returns '{(int)response.StatusCode}' status (from '{bucketsList}')");
+                                _logger.LogWarning($"Skipping '{uri}' because it returns '{(int)response.StatusCode}' status (from '{bucketsList}')");
                                 continue;
                             }
 
                             if (request.RequestUri != new Uri(uri))
                             {
-                                logger.LogDebug($"'{uri}' redirects to '{request.RequestUri}' (from '{bucketsList}')");
+                                _logger.LogDebug($"'{uri}' redirects to '{request.RequestUri}' (from '{bucketsList}')");
                             }
 
                             buckets.Add(request.RequestUri);
@@ -131,7 +124,7 @@ public class DispatchBucketsCrawler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unable to read/parse data from '{0}'", bucketsList);
+            _logger.LogError(ex, "Unable to read/parse data from '{0}'", bucketsList);
         }
 
         return buckets;
@@ -164,35 +157,5 @@ public class DispatchBucketsCrawler
             });
 
         return buckets;
-    }
-
-    private async Task QueueBucketsForIndexingAsync(IAsyncCollector<QueueItem> queue, QueueItem[] items, ILogger logger, CancellationToken cancellationToken)
-    {
-        logger.LogInformation($"Adding {items.Length} buckets for indexing.");
-        await Parallel.ForEachAsync(
-            items,
-            new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken},
-            async (item, cancellationToken) =>
-            {
-                logger.LogDebug($"Adding bucket '{item.Bucket}' (stars: {item.Stars}, official: {item.Official}) to queue.");
-                await queue.AddAsync(item, cancellationToken);
-            });
-    }
-
-    private async Task CleanIndexFromNonExistentBucketsAsync(IEnumerable<Uri> buckets, ILogger logger, CancellationToken cancellationToken)
-    {
-        var allBucketsFromIndex = await _indexer.GetBucketsAsync(cancellationToken);
-        var deletedBuckets = allBucketsFromIndex.Except(buckets).ToArray();
-        logger.LogInformation($"{deletedBuckets.Length} buckets to remove from the index.");
-
-        await Parallel.ForEachAsync(
-            deletedBuckets.TakeWhile(x => !cancellationToken.IsCancellationRequested),
-            new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
-            async (deletedBucket, cancellationToken) =>
-            {
-                var manifests = (await _indexer.GetExistingManifestsAsync(deletedBucket, cancellationToken)).ToArray();
-                logger.LogDebug($"Deleting {manifests.Length} manifests from bucket {deletedBucket}.");
-                await _indexer.DeleteManifestsAsync(manifests, cancellationToken);
-            });
     }
 }

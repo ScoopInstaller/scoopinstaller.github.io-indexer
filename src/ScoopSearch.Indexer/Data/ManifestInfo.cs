@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
@@ -20,10 +20,6 @@ public class ManifestInfo
         AllowTrailingCommas = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
-
-    public ManifestInfo()
-    {
-    }
 
     [SimpleField(IsKey = true, IsFilterable = true, IsSortable = true)]
     [JsonInclude]

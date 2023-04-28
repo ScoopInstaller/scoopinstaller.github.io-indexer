@@ -1,5 +1,3 @@
-using ScoopSearch.Indexer.Data;
-
 namespace ScoopSearch.Indexer.GitHub;
 
 public interface IGitHubClient

@@ -8,7 +8,7 @@ using ScoopSearch.Indexer.Extensions;
 
 namespace ScoopSearch.Indexer.Indexer;
 
-public class AzureSearchIndex
+internal class AzureSearchIndex : ISearchIndex
 {
     public const string StandardAnalyzer = "StandardAnalyzer";
 
@@ -35,7 +35,7 @@ public class AzureSearchIndex
         _client = new SearchIndexClient(options.Value.ServiceUrl, new AzureKeyCredential(options.Value.AdminApiKey));
     }
 
-    public void CreateIndexIfRequired()
+    public async Task CreateIndexIfRequiredAsync(CancellationToken cancellationToken)
     {
         var index = new SearchIndex(_indexName);
         index.Fields = BuildFields();
@@ -49,7 +49,7 @@ public class AzureSearchIndex
         index.DefaultScoringProfile = ScoringProfile;
         index.CorsOptions = new CorsOptions(CorsAllowedHosts);
 
-        _client.CreateOrUpdateIndex(index);
+        await _client.CreateOrUpdateIndexAsync(index, cancellationToken: cancellationToken);
     }
 
     private IList<SearchField> BuildFields()
