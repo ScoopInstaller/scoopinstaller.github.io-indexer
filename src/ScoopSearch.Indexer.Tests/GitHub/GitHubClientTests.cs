@@ -14,7 +14,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     {
         hostFixture.Configure(testOutputHelper);
 
-        _sut = new GitHubClient(hostFixture.Host.Services.GetRequiredService<IHttpClientFactory>());
+        _sut = new GitHubClient(hostFixture.Instance.Services.GetRequiredService<IHttpClientFactory>());
     }
 
     [Fact]

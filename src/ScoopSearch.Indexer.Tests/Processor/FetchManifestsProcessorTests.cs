@@ -2,70 +2,111 @@ using System.Text.Json;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Manifest;
+using ScoopSearch.Indexer.Processor;
 using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-namespace ScoopSearch.Indexer.Tests.Manifest;
+namespace ScoopSearch.Indexer.Tests.Processor;
 
-public class ManifestCrawlerTests
+public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
 {
-    private readonly Mock<IGitRepositoryProvider> _gitRepositoryProviderMock;
-    private readonly XUnitLogger<ManifestCrawler> _logger;
-    private readonly ManifestCrawler _sut;
+    private readonly HostFixture _hostFixture;
+    private readonly XUnitLogger<FetchManifestsProcessor> _logger;
 
-    public ManifestCrawlerTests(ITestOutputHelper testOutputHelper)
+    public FetchManifestsProcessorTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
     {
-        _gitRepositoryProviderMock = new Mock<IGitRepositoryProvider>();
-        var keyGeneratorMock = new Mock<IKeyGenerator>();
-        keyGeneratorMock
-            .Setup(_ => _.Generate(It.IsAny<ManifestMetadata>()))
-            .Returns<ManifestMetadata>(_ => $"KEY_{_.FilePath}");
+        _hostFixture = hostFixture;
+        _hostFixture.Configure(testOutputHelper);
 
-        _logger = new XUnitLogger<ManifestCrawler>(testOutputHelper);
-
-        _sut = new ManifestCrawler(_gitRepositoryProviderMock.Object, keyGeneratorMock.Object, _logger);
+        _logger = new XUnitLogger<FetchManifestsProcessor>(testOutputHelper);
     }
 
-    [Fact]
-    public void GetManifestsFromRepository_NullRepository_ReturnsEmptyResults()
+    [Theory]
+    [CombinatorialData]
+    public async void FetchManifestsAsync_ValidRepository_ReturnsManifestsWithStarsAndKind([CombinatorialValues(123, 321)] int stars, bool officialRepository)
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
-        var cancellationToken = new CancellationToken();
-        _gitRepositoryProviderMock
-            .Setup(_ => _.Download(uri, cancellationToken))
-            .Returns((IGitRepository?)null);
+        var bucketInfo = new BucketInfo(uri, stars, officialRepository);
+        var cancellationToken = CancellationToken.None;
+        var sut = CreateSut();
 
         // Act
-        var result = _sut.GetManifestsFromRepository(uri, cancellationToken);
+        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+
+        // Assert
+        _logger.Should().Log(LogLevel.Information, $"Found 5 manifests for {uri}");
+        result
+            .Should().HaveCount(5)
+            .And.AllSatisfy(_ =>
+            {
+                _.Metadata.RepositoryStars.Should().Be(stars);
+                _.Metadata.OfficialRepository.Should().Be(officialRepository);
+            });
+    }
+
+    [Theory]
+    [InlineData(Constants.NonExistentTestRepositoryUri)]
+    [InlineData(Constants.EmptyTestRepositoryUri)]
+    public async void FetchManifestsAsync_InvalidRepository_ReturnsEmptyResults(string repository)
+    {
+        // Arrange
+        var uri = new Uri(repository);
+        var bucketInfo = new BucketInfo(uri, 0, false);
+        var cancellationToken = CancellationToken.None;
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+
+        // Assert
+        _logger.Should().Log(LogLevel.Information, $"Found 0 manifests for {uri}");
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async void FetchManifestsAsync_NullRepository_ReturnsEmptyResults()
+    {
+        // Arrange
+        var uri = new Uri(Constants.TestRepositoryUri);
+        var bucketInfo = new BucketInfo(uri, 0, false);
+        var cancellationToken = new CancellationToken();
+        var sut = CreateSut(_ => _
+            .Setup(_ => _.Download(uri, cancellationToken))
+            .Returns((IGitRepository?)null));
+
+        // Act
+        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
 
         // Assert
         result.Should().BeEmpty();
-        _logger.Should().NoLog(LogLevel.Trace);
     }
 
     [Fact]
-    public void GetManifestsFromRepository_ManifestNotInCache_ManifestSkipped()
+    public async void FetchManifestsAsync_ManifestNotInCommitsCache_ManifestSkipped()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
+        var bucketInfo = new BucketInfo(uri, 0, false);
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
             new GitRepositoryMockEntry("manifest1.json", null),
             new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
-        _gitRepositoryProviderMock
+
+        var sut = CreateSut(_ => _
             .Setup(_ => _.Download(uri, cancellationToken))
-            .Returns(gitRepositoryMock.Object);
+            .Returns(gitRepositoryMock.Object));
 
         // Act
-        var result = _sut.GetManifestsFromRepository(uri, cancellationToken).ToArray();
+        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
 
         // Assert
         result.Should().HaveCount(1);
@@ -82,22 +123,24 @@ public class ManifestCrawlerTests
     }
 
     [Fact]
-    public void GetManifestsFromRepository_InvalidManifest_ManifestSkipped()
+    public async void FetchManifestsAsync_InvalidManifest_ManifestSkipped()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
+        var bucketInfo = new BucketInfo(uri, 0, false);
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
             new GitRepositoryMockEntry("manifest1.json", "invalid"),
             new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
-        _gitRepositoryProviderMock
+
+        var sut = CreateSut(_ => _
             .Setup(_ => _.Download(uri, cancellationToken))
-            .Returns(gitRepositoryMock.Object);
+            .Returns(gitRepositoryMock.Object));
 
         // Act
-        var result = _sut.GetManifestsFromRepository(uri, cancellationToken).ToArray();
+        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
 
         // Assert
         result.Should().HaveCount(1);
@@ -114,22 +157,23 @@ public class ManifestCrawlerTests
     }
 
     [Fact]
-    public void GetManifestsFromRepository_SelectsBucketSubDirectoryIfExists_ReturnsManifestsFromSubDirectoryOnly()
+    public async void FetchManifestsAsync_SelectsBucketSubDirectoryIfExists_ReturnsManifestsFromSubDirectoryOnly()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
+        var bucketInfo = new BucketInfo(uri, 0, false);
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
             new GitRepositoryMockEntry("bucket/manifest1.json", "{}"),
             new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
-        _gitRepositoryProviderMock
+        var sut = CreateSut(_ => _
             .Setup(_ => _.Download(uri, cancellationToken))
-            .Returns(gitRepositoryMock.Object);
+            .Returns(gitRepositoryMock.Object));
 
         // Act
-        var result = _sut.GetManifestsFromRepository(uri, cancellationToken).ToArray();
+        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
 
         // Assert
         result.Should().HaveCount(1);
@@ -170,5 +214,27 @@ public class ManifestCrawlerTests
         return gitRepositoryMock;
     }
 
+    private FetchManifestsProcessor CreateSut()
+    {
+        return new FetchManifestsProcessor(
+            _hostFixture.Instance.Services.GetRequiredService<IGitRepositoryProvider>(),
+            _hostFixture.Instance.Services.GetRequiredService<IKeyGenerator>(),
+            _logger);
+    }
 
+    private FetchManifestsProcessor CreateSut(Action<Mock<IGitRepositoryProvider>> configureGitRepositoryProvider)
+    {
+        var gitRepositoryProviderMock = new Mock<IGitRepositoryProvider>();
+        configureGitRepositoryProvider(gitRepositoryProviderMock);
+
+        var keyGeneratorMock = new Mock<IKeyGenerator>();
+        keyGeneratorMock
+            .Setup(_ => _.Generate(It.IsAny<ManifestMetadata>()))
+            .Returns<ManifestMetadata>(_ => $"KEY_{_.FilePath}");
+
+        return new FetchManifestsProcessor(
+            gitRepositoryProviderMock.Object,
+            keyGeneratorMock.Object,
+            _logger);
+    }
 }

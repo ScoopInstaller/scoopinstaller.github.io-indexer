@@ -6,7 +6,6 @@ namespace ScoopSearch.Indexer.Tests.Helpers;
 
 public static class LoggerMockAssertionsExtensions
 {
-
     public static LoggerMockAssertions<TCategoryName> Should<TCategoryName>(this XUnitLogger<TCategoryName> @this)
     {
         return new LoggerMockAssertions<TCategoryName>(@this);

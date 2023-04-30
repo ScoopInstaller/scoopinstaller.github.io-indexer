@@ -1,9 +1,8 @@
 using System.Reflection;
+using System.Text.Json;
 using FluentAssertions;
 using FluentAssertions.Extensions;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
@@ -113,7 +112,7 @@ public class GitRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        JsonConvert.DeserializeObject(result).Should().NotBeNull();
+        JsonSerializer.Deserialize<object?>(result).Should().NotBeNull();
     }
 
     [Theory]

@@ -6,6 +6,8 @@ namespace ScoopSearch.Indexer.Tests.Helpers;
 
 internal class XUnitLoggerMock<T> : Mock<ILogger<T>>
 {
+    private const LogLevel DefaultLogLevel = LogLevel.Information;
+
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly string _loggerName;
 
@@ -23,7 +25,7 @@ internal class XUnitLoggerMock<T> : Mock<ILogger<T>>
             .Callback(Log);
 
         Setup(logger => logger.IsEnabled(It.IsAny<LogLevel>()))
-            .Returns(true);
+            .Returns<LogLevel>(logLevel => logLevel >= DefaultLogLevel);
         Setup(logger => logger.BeginScope(It.IsAny<It.IsAnyType>()))
             .Returns<object>(state => Disposable.Create(
                 () => _testOutputHelper.WriteLine($"{DateTime.Now:u} | ==> | {_loggerName} | {state}"),
@@ -32,6 +34,11 @@ internal class XUnitLoggerMock<T> : Mock<ILogger<T>>
 
     private void Log(LogLevel logLevel, EventId eventId, object state, Exception? exception, Delegate formatter)
     {
+        if (!Object.IsEnabled(logLevel))
+        {
+            return;
+        }
+
         var formattedLogLevel = logLevel.ToString().ToUpper()[..3];
         var message = formatter.DynamicInvoke(state, exception) as string;
         var formattedMessage = $"{DateTime.Now:u} | {formattedLogLevel} | {_loggerName} | {message}";

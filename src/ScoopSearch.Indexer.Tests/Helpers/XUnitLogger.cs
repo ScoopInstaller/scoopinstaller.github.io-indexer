@@ -18,7 +18,7 @@ public class XUnitLogger : ILogger
 
     public bool IsEnabled(LogLevel logLevel) => _logger.IsEnabled(logLevel);
 
-    public IDisposable BeginScope<TState>(TState state) => _logger.BeginScope(state);
+    public IDisposable BeginScope<TState>(TState state) where TState : notnull => _logger.BeginScope(state)!;
 }
 
 public class XUnitLogger<TCategoryName> : ILogger<TCategoryName>
@@ -35,5 +35,5 @@ public class XUnitLogger<TCategoryName> : ILogger<TCategoryName>
 
     public bool IsEnabled(LogLevel logLevel) => Mock.Object.IsEnabled(logLevel);
 
-    public IDisposable BeginScope<TState>(TState state) => Mock.Object.BeginScope(state);
+    public IDisposable BeginScope<TState>(TState state) where TState : notnull => Mock.Object.BeginScope(state)!;
 }
