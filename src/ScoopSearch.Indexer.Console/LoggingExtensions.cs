@@ -24,6 +24,7 @@ public static class LoggingExtensions
 
             configure
                 .MinimumLevel.Debug()
+                .Enrich.WithThreadId()
                 .Enrich.WithSensitiveDataMasking(options =>
                 {
                     options.MaskingOperators.Clear();
@@ -35,9 +36,9 @@ public static class LoggingExtensions
                 .WriteTo.File(new CompactJsonFormatter(), logFile)
                 .WriteTo.Logger(options => options
                     .MinimumLevel.Information()
-                    // Exclude non important HttpClient logs from the console
+                    // Exclude verbose HttpClient logs from the console
                     .Filter.ByExcluding(_ => Matching.FromSource(typeof(HttpClient).FullName)(_) && _.Level < LogEventLevel.Warning)
-                    .WriteTo.Console());
+                    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {ThreadId}] {Message:lj}{NewLine}"));
         });
     }
 
