@@ -76,4 +76,9 @@ internal class AzureSearchClient : ISearchClient
     {
         await _client.UploadDocumentsAsync(manifests, null, token);
     }
+
+    public async Task PatchAsync<T>(IEnumerable<T> patches, CancellationToken token)
+    {
+        await _client.MergeDocumentsAsync(patches, null, token);
+    }
 }

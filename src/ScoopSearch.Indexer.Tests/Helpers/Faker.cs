@@ -39,7 +39,9 @@ public static class Faker
             .RuleFor(_ => _.FilePath, f => f.System.FilePath())
             .RuleFor(_ => _.AuthorName, f => f.Name.FullName())
             .RuleFor(_ => _.AuthorMail, f => f.Internet.Email())
-            .RuleFor(_ => _.Committed, f => f.Date.RecentOffset());
+            .RuleFor(_ => _.Committed, f => f.Date.RecentOffset())
+            .RuleFor(_ => _.ManifestHash, f => f.Random.Hash())
+            .RuleFor(_ => _.DuplicateOf, f => f.Random.Hash());
 
         return faker;
     }

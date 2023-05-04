@@ -24,7 +24,8 @@ public class ManifestMetadata
         string authorName,
         string authorMail,
         DateTimeOffset committed,
-        string sha)
+        string sha,
+        string manifestHash)
     {
         Repository = repository;
         BranchName = branchName;
@@ -33,6 +34,7 @@ public class ManifestMetadata
         AuthorMail = authorMail;
         Committed = committed;
         Sha = sha;
+        ManifestHash = manifestHash;
     }
 
     [SearchableField(IsFilterable = true, IsSortable = true, IsFacetable = true, AnalyzerName = AzureSearchIndex.UrlAnalyzer)]
@@ -75,10 +77,21 @@ public class ManifestMetadata
     [JsonInclude]
     public string Sha { get; private set; } = null!;
 
+    public string ManifestHash { get; private set; } = null!;
+
+    [SimpleField(IsFilterable = true)]
+    [JsonInclude]
+    public string? DuplicateOf { get; private set; }
+
     public void SetRepositoryMetadata(bool officialRepository, int repositoryStars)
     {
         OfficialRepository = officialRepository;
         OfficialRepositoryNumber = OfficialRepository.GetValueOrDefault() ? 1 : 0;
         RepositoryStars = repositoryStars;
+    }
+
+    public void SetDuplicateOf(string originalId)
+    {
+        DuplicateOf = originalId;
     }
 }

@@ -67,7 +67,10 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         await _sut.UpdateIndexWithManifestsAsync(manifestsInRepositories, cancellationToken);
 
         // Assert
-        _logger.Should().Log(LogLevel.Information, $"{manifestsInIndex.Length} existing manifests in the index. {expectedManifestsToAddCount} manifests to add / {expectedManifestsToRemove.Length} manifests to remove / {expectedManifestsToUpdateCount} manifests to update");
+        _logger.Should().Log(LogLevel.Information, $"{manifestsInIndex.Length} manifests found in the index");
+        _logger.Should().Log(LogLevel.Information, $"{expectedManifestsToRemove.Length} manifests to delete from the index (not found in the existing buckets anymore)");
+        _logger.Should().Log(LogLevel.Information, $"{expectedManifestsToAddCount} manifests to add to the index");
+        _logger.Should().Log(LogLevel.Information, $"{expectedManifestsToUpdateCount} manifests to update in the index");
 
         if (expectedManifestsToAddOrUpdate.Any())
         {
