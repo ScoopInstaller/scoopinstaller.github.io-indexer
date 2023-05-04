@@ -1,4 +1,5 @@
-﻿using Azure;
+﻿using System.Runtime.CompilerServices;
+using Azure;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using Microsoft.Extensions.Options;
@@ -16,7 +17,7 @@ internal class AzureSearchClient : ISearchClient
         _client = new SearchClient(options.Value.ServiceUrl, options.Value.IndexName, new AzureKeyCredential(options.Value.AdminApiKey));
     }
 
-    public async Task<IEnumerable<ManifestInfo>> GetExistingManifestsAsync(IEnumerable<Uri> repositories, CancellationToken token)
+    public async IAsyncEnumerable<ManifestInfo> GetExistingManifestsAsync(IEnumerable<Uri> repositories, [EnumeratorCancellation] CancellationToken token)
     {
         var options = new SearchOptions();
         options.Select.Add(ManifestInfo.IdField);
@@ -28,17 +29,14 @@ internal class AzureSearchClient : ISearchClient
         options.OrderBy.Add(ManifestInfo.IdField);
         options.Size = int.MaxValue; // Retrieve as many results as possible
 
-        var results = new List<ManifestInfo>();
         var searchResults = await _client.SearchAsync<ManifestInfo>("*", options, token);
         await foreach(var searchResult in searchResults.Value.GetResultsAsync().WithCancellation(token))
         {
-            results.Add(searchResult.Document);
+            yield return searchResult.Document;
         }
-
-        return results;
     }
 
-    public async Task<IEnumerable<ManifestInfo>> GetAllManifestsAsync(CancellationToken token)
+    public async IAsyncEnumerable<ManifestInfo> GetAllManifestsAsync([EnumeratorCancellation] CancellationToken token)
     {
         var options = new SearchOptions();
         options.Select.Add(ManifestInfo.IdField);
@@ -51,14 +49,11 @@ internal class AzureSearchClient : ISearchClient
         options.OrderBy.Add(ManifestInfo.IdField);
         options.Size = int.MaxValue; // Retrieve as many results as possible
 
-        var results = new List<ManifestInfo>();
         var searchResults = await _client.SearchAsync<ManifestInfo>("*", options, token);
         await foreach(var searchResult in searchResults.Value.GetResultsAsync().WithCancellation(token))
         {
-            results.Add(searchResult.Document);
+            yield return searchResult.Document;
         }
-
-        return results;
     }
 
     public async Task<IEnumerable<Uri>> GetBucketsAsync(CancellationToken token)

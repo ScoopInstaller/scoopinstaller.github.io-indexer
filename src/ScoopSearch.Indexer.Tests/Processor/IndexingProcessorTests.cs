@@ -59,7 +59,7 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         var cancellationToken = CancellationToken.None;
         _searchClientMock
             .Setup(_ => _.GetAllManifestsAsync(cancellationToken))
-            .Returns(Task.FromResult<IEnumerable<ManifestInfo>>(manifestsInIndex))
+            .Returns(manifestsInIndex.ToAsyncEnumerable())
             .Verifiable();
         var manifestsInRepositories = CreateFakeData().Select(_ => _.ManifestInfo.Generate()).ToArray();
 
