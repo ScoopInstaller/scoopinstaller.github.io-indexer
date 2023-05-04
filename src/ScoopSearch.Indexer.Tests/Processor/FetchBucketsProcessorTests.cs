@@ -44,10 +44,10 @@ public class FetchBucketsProcessorTests : IClassFixture<HostFixture>
 
         _logger.Should().Log(LogLevel.Information, "Retrieving buckets from sources");
         _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, $"Found {expectedOfficialBucketsCount} official buckets.+"));
-        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d{4} buckets on GitHub\."));
-        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to ignore \(appsettings\.json\)\."));
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d{4} buckets on GitHub"));
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to ignore \(appsettings\.json\)"));
         _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to ignore from external list.+"));
-        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to add \(appsettings\.json\)\."));
+        _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to add \(appsettings\.json\)"));
         _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, @"Found \d+ buckets to add from external list.+"));
         _logger.Should().Log(LogLevel.Debug, _ => _.StartsWith("Adding bucket"), Times.AtLeast(expectedAtLeastBucketsCount));
         _logger.Should().Log(LogLevel.Debug, _ => _.StartsWith("Adding bucket 'https://github.com/ScoopInstaller/Main'"));

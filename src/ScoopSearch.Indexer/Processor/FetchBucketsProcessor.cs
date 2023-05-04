@@ -39,12 +39,12 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
 
         await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
 
-        _logger.LogInformation($"Found {officialBucketsTask.Result.Count} official buckets ({_bucketOptions.OfficialBucketsListUrl}).");
-        _logger.LogInformation($"Found {githubBucketsTask.Result.Count} buckets on GitHub.");
-        _logger.LogInformation($"Found {_bucketOptions.IgnoredBuckets.Count} buckets to ignore (appsettings.json).");
-        _logger.LogInformation($"Found {ignoredBucketsTask.Result.Count} buckets to ignore from external list ({_bucketOptions.IgnoredBucketsListUrl}).");
-        _logger.LogInformation($"Found {_bucketOptions.ManualBuckets.Count} buckets to add (appsettings.json).");
-        _logger.LogInformation($"Found {manualBucketsTask.Result.Count} buckets to add from external list ({_bucketOptions.ManualBucketsListUrl}).");
+        _logger.LogInformation("Found {Count} official buckets ({Url})", officialBucketsTask.Result.Count, _bucketOptions.OfficialBucketsListUrl);
+        _logger.LogInformation("Found {Count} buckets on GitHub", githubBucketsTask.Result.Count);
+        _logger.LogInformation("Found {Count} buckets to ignore (appsettings.json)", _bucketOptions.IgnoredBuckets.Count);
+        _logger.LogInformation("Found {Count} buckets to ignore from external list ({Url})", ignoredBucketsTask.Result.Count, _bucketOptions.IgnoredBucketsListUrl);
+        _logger.LogInformation("Found {Count} buckets to add (appsettings.json)", _bucketOptions.ManualBuckets.Count);
+        _logger.LogInformation("Found {Count} buckets to add from external list ({Url})", manualBucketsTask.Result.Count, _bucketOptions.ManualBucketsListUrl);
 
         var allBuckets = githubBucketsTask.Result.Keys
             .Concat(officialBucketsTask.Result)
@@ -54,12 +54,12 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
             .Except(ignoredBucketsTask.Result)
             .ToHashSet();
 
-        _logger.LogInformation($"{allBuckets.Count} buckets found for indexing.");
+        _logger.LogInformation("{Count} buckets found for indexing", allBuckets.Count);
         var bucketsToIndexTasks = allBuckets.Select(async _ =>
         {
             var stars = githubBucketsTask.Result.TryGetValue(_, out var value) ? value : (await _gitHubClient.GetRepoAsync(_, cancellationToken))?.Stars ?? -1;
             var official = officialBucketsTask.Result.Contains(_);
-            _logger.LogDebug($"Adding bucket '{_}' (stars: {stars}, official: {official}).");
+            _logger.LogDebug("Adding bucket '{Url}' (stars: {Stars}, official: {Official})", _, stars, official);
 
             return new BucketInfo(_, stars, official);
         }).ToArray();
@@ -107,13 +107,13 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
                         {
                             if (!response.IsSuccessStatusCode)
                             {
-                                _logger.LogWarning($"Skipping '{uri}' because it returns '{(int)response.StatusCode}' status (from '{bucketsList}')");
+                                _logger.LogWarning("Skipping '{Uri}' because it returns '{Status}' status (from '{BucketsList}')", uri, (int)response.StatusCode, bucketsList);
                                 continue;
                             }
 
                             if (request.RequestUri != new Uri(uri))
                             {
-                                _logger.LogDebug($"'{uri}' redirects to '{request.RequestUri}' (from '{bucketsList}')");
+                                _logger.LogDebug("'{Uri}' redirects to '{RedirectUri}' (from '{BucketsList}')", uri, request.RequestUri, bucketsList);
                             }
 
                             buckets.Add(request.RequestUri);
@@ -124,7 +124,7 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to read/parse data from '{0}'", bucketsList);
+            _logger.LogError(ex, "Unable to read/parse data from '{BucketList}'", bucketsList);
         }
 
         return buckets;

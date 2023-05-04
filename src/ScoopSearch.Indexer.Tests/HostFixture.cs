@@ -60,7 +60,7 @@ public class HostFixture : IDisposable
             .Build();
 
         host.Services.GetRequiredService<IOptions<GitHubOptions>>().Value.Token
-            .Should().NotBeNullOrEmpty("because the GitHub token is required for the tests to run. Add an environment variable Github__Token with a valid token (public_repo scope).");
+            .Should().NotBeNullOrEmpty("because the GitHub token is required for the tests to run. Add an environment variable Github__Token with a valid token (public_repo scope)");
 
         return host;
     }

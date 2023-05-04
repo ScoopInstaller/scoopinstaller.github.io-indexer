@@ -36,7 +36,7 @@ internal class GitHubClient : IGitHubClient
     {
         if (uri.Host.EndsWith(GitHubDomain, StringComparison.Ordinal) == false)
         {
-            throw new ArgumentException("The URI must be a GitHub repo URI.", nameof(uri));
+            throw new ArgumentException("The URI must be a GitHub repo URI", nameof(uri));
         }
 
         var apiRepoUri = new Uri(GitHubApiRepoBaseUri + uri.PathAndQuery);

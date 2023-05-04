@@ -19,6 +19,6 @@ internal class TimingInterceptor : AsyncTimingInterceptor
 
     protected override void CompletedTiming(IInvocation invocation, Stopwatch stopwatch)
     {
-        _logger.LogDebug($"Executed '{invocation.Method.Name}({string.Join(", ", invocation.Arguments)})' in {stopwatch.Elapsed:g}");
+        _logger.LogDebug("Executed '{Method}({Arguments})' in {Duration:g}", invocation.Method.Name, string.Join(", ", invocation.Arguments), stopwatch.Elapsed);
     }
 }

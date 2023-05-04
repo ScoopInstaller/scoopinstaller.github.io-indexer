@@ -21,13 +21,13 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
     public async Task<ManifestInfo[]> FetchManifestsAsync(BucketInfo bucketInfo, CancellationToken cancellationToken)
     {
         // Clone/Update bucket repository and retrieve manifests
-        _logger.LogInformation($"Generating manifests list for '{bucketInfo.Uri}'");
+        _logger.LogInformation("Generating manifests list for '{Bucket}'", bucketInfo.Uri);
 
         var manifestsFromBucket = this
             .GetManifestsFromRepository(bucketInfo.Uri, cancellationToken)
             .ToArray();
 
-        _logger.LogInformation($"Found {manifestsFromBucket.Length} manifests for {bucketInfo.Uri}");
+        _logger.LogInformation("Found {Count} manifests for {Bucket}", manifestsFromBucket.Length, bucketInfo.Uri);
 
         foreach (var manifestInfo in manifestsFromBucket)
         {

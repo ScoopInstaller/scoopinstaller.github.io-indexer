@@ -81,7 +81,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
 
         // Assert
         (await act.Should().ThrowAsync<ArgumentException>())
-            .And.Message.Should().Be("The URI must be a GitHub repo URI. (Parameter 'uri')");
+            .And.Message.Should().Be("The URI must be a GitHub repo URI (Parameter 'uri')");
     }
 
     [Fact]
