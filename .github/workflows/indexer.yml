@@ -1,5 +1,7 @@
 name: Run indexer
 on:
+  schedule:
+    - cron: "15 */2 * * *"
   workflow_dispatch:
 
 env:
