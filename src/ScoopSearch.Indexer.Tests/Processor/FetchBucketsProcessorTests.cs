@@ -41,6 +41,7 @@ public class FetchBucketsProcessorTests : IClassFixture<HostFixture>
 
         // Assert
         result.Should().HaveCountGreaterOrEqualTo(expectedAtLeastBucketsCount);
+        result.Should().OnlyHaveUniqueItems(_ => _.Uri.AbsoluteUri.ToLowerInvariant());
 
         _logger.Should().Log(LogLevel.Information, "Retrieving buckets from sources");
         _logger.Should().Log(LogLevel.Information, _ => Regex.IsMatch(_, $"Found {expectedOfficialBucketsCount} official buckets.+"));

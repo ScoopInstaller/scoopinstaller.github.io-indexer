@@ -52,6 +52,7 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
             .Concat(manualBucketsTask.Result)
             .Except(_bucketOptions.IgnoredBuckets)
             .Except(ignoredBucketsTask.Result)
+            .DistinctBy(_ => _.AbsoluteUri.ToLowerInvariant())
             .ToHashSet();
 
         _logger.LogInformation("{Count} buckets found for indexing", allBuckets.Count);
