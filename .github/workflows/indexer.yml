@@ -1,0 +1,50 @@
+name: Run indexer
+on:
+  workflow_dispatch:
+
+env:
+  OUTPUT_PATH: ${{ github.workspace }}/output
+  APP_PATH: ${{ github.workspace }}/src/ScoopSearch.Indexer.Console/
+  GitHub__Token: ${{ secrets.APPSETTINGS_GITHUBTOKEN }}
+  AzureSearch__ServiceUrl: ${{ secrets.APPSETTINGS_AZURESEARCHSERVICEURL }}
+  AzureSearch__AdminApiKey: ${{ secrets.APPSETTINGS_AZURESEARCHADMINAPIKEY }}
+  AzureSearch__IndexName: ${{ secrets.APPSETTINGS_AZURESEARCHINDEXNAME }}
+  DOTNET_VERSION: '7.0.x'
+
+jobs:
+  main:
+    name: Build and run indexer ⚙️️🚀🌐
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Full history is required by GitVersion
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install dependencies
+        run: dotnet restore ${{ env.APP_PATH }} --verbosity detailed
+
+      - name: Publish
+        run: >
+          dotnet publish ${{ env.APP_PATH }}
+          --configuration Release
+          --no-restore
+          --output ${{ env.OUTPUT_PATH }}
+          --verbosity detailed
+
+      - name: Run indexer
+        run: |
+          cd ${{ env.OUTPUT_PATH }}
+          ./ScoopSearch.Indexer.Console
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs
+          path: ${{ env.OUTPUT_PATH }}/output.txt

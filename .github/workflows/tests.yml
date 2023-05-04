@@ -10,8 +10,9 @@ on:
 
 env:
   OUTPUT_PATH: ${{ github.workspace }}/output
-  TESTS_PATH: ${{ github.workspace }}/src/ScoopSearch.Functions.Tests/
-  DOTNET_VERSION: '6.0.x'
+  TESTS_PATH: ${{ github.workspace }}/src/ScoopSearch.Indexer.Tests/
+  GitHub__Token: ${{ secrets.APPSETTINGS_GITHUBTOKEN }}
+  DOTNET_VERSION: '7.0.x'
   # SONAR_TOKEN: ''  # Stored in the Actions secrets
 
 jobs:
