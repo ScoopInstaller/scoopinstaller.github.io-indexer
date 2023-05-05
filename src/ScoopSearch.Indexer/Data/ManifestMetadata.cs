@@ -41,6 +41,7 @@ public class ManifestMetadata
     [JsonInclude]
     public string Repository { get; private set; } = null!;
 
+    [SimpleField]
     [JsonInclude]
     public bool? OfficialRepository { get; private set; }
 
@@ -77,6 +78,7 @@ public class ManifestMetadata
     [JsonInclude]
     public string Sha { get; private set; } = null!;
 
+    [JsonIgnore]
     public string ManifestHash { get; private set; } = null!;
 
     [SimpleField(IsFilterable = true)]
