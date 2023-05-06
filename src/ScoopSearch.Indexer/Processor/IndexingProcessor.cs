@@ -68,7 +68,7 @@ internal class IndexingProcessor : IIndexingProcessor
     private void UpdateManifestsMetadataWithDuplicateInfo(ref ManifestInfo[] manifestsFromRepositories)
     {
         var duplicatedManifestsGroups = manifestsFromRepositories
-            .Select(_ => (manifest: _, hash: string.Concat(_.Name, _.Description, _.Homepage, _.License, _.Version).Sha1Sum()))
+            .Select(_ => (manifest: _, hash: string.Concat(_.Name, _.Version).Sha1Sum()))
             .GroupBy(_ => _.hash)
             .Where(_ => _.Count() > 1) // Limit to duplicates
             .Where(_ => _.Select(_ => _.manifest.Metadata.Repository).Distinct().Count() > 1) // Limit to duplicates when found in different repositories
