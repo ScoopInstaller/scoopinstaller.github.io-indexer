@@ -46,6 +46,7 @@ internal class AzureSearchClient : ISearchClient
         options.Select.Add(ManifestMetadata.ShaField);
         options.Select.Add(ManifestMetadata.CommittedField);
         options.Select.Add(ManifestMetadata.FilePathField);
+        options.Select.Add(ManifestMetadata.DuplicateOfField);
         options.OrderBy.Add(ManifestInfo.IdField);
         options.Size = int.MaxValue; // Retrieve as many results as possible
 
@@ -75,10 +76,5 @@ internal class AzureSearchClient : ISearchClient
     public async Task UpsertManifestsAsync(IEnumerable<ManifestInfo> manifests, CancellationToken token)
     {
         await _client.UploadDocumentsAsync(manifests, null, token);
-    }
-
-    public async Task PatchAsync<T>(IEnumerable<T> patches, CancellationToken token)
-    {
-        await _client.MergeDocumentsAsync(patches, null, token);
     }
 }

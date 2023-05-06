@@ -31,7 +31,8 @@ internal class ManifestComparer : IEqualityComparer<ManifestInfo>
             return x.Id == y.Id
                    && x.Metadata.Sha == y.Metadata.Sha
                    && x.Metadata.RepositoryStars == y.Metadata.RepositoryStars
-                   && x.Metadata.OfficialRepositoryNumber == y.Metadata.OfficialRepositoryNumber;
+                   && x.Metadata.OfficialRepositoryNumber == y.Metadata.OfficialRepositoryNumber
+                   && x.Metadata.DuplicateOf == y.Metadata.DuplicateOf;
         }
         else
         {
@@ -43,7 +44,7 @@ internal class ManifestComparer : IEqualityComparer<ManifestInfo>
     {
         if (_exactComparer)
         {
-            return HashCode.Combine(obj.Id, obj.Metadata.Sha, obj.Metadata.RepositoryStars, obj.Metadata.OfficialRepositoryNumber);
+            return HashCode.Combine(obj.Id, obj.Metadata.Sha, obj.Metadata.RepositoryStars, obj.Metadata.OfficialRepositoryNumber, obj.Metadata.DuplicateOf);
         }
         else
         {

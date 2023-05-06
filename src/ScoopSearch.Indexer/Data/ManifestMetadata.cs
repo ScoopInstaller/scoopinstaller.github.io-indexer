@@ -12,6 +12,7 @@ public class ManifestMetadata
     public const string CommittedField = nameof(ManifestInfo.Metadata) + "/" + nameof(Committed);
     public const string FilePathField = nameof(ManifestInfo.Metadata) + "/" + nameof(FilePath);
     public const string OfficialRepositoryNumberField = nameof(ManifestInfo.Metadata) + "/" + nameof(OfficialRepositoryNumber);
+    public const string DuplicateOfField = nameof(ManifestInfo.Metadata) + "/" + nameof(DuplicateOf);
 
     public ManifestMetadata()
     {

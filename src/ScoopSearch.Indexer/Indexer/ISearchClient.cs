@@ -13,6 +13,4 @@ public interface ISearchClient
     Task DeleteManifestsAsync(IEnumerable<ManifestInfo> manifests, CancellationToken token);
 
     Task UpsertManifestsAsync(IEnumerable<ManifestInfo> manifests, CancellationToken token);
-
-    Task PatchAsync<T>(IEnumerable<T> patches, CancellationToken token);
 }
