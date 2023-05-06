@@ -38,7 +38,6 @@ public static class Faker
             .RuleFor(_ => _.BranchName, f => f.Lorem.Word())
             .RuleFor(_ => _.FilePath, f => f.System.FilePath())
             .RuleFor(_ => _.Committed, f => f.Date.RecentOffset())
-            .RuleFor(_ => _.ManifestHash, f => f.Random.Hash())
             .RuleFor(_ => _.DuplicateOf, f => null);
 
         return faker;

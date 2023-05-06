@@ -23,15 +23,13 @@ public class ManifestMetadata
         string branchName,
         string filePath,
         DateTimeOffset committed,
-        string sha,
-        string manifestHash)
+        string sha)
     {
         Repository = repository;
         BranchName = branchName;
         FilePath = filePath;
         Committed = committed;
         Sha = sha;
-        ManifestHash = manifestHash;
     }
 
     [SearchableField(IsFilterable = true, IsSortable = true, IsFacetable = true, AnalyzerName = AzureSearchIndex.UrlAnalyzer)]
@@ -66,9 +64,6 @@ public class ManifestMetadata
     [SimpleField(IsFilterable = true)]
     [JsonInclude]
     public string Sha { get; private set; } = null!;
-
-    [JsonIgnore]
-    public string ManifestHash { get; private set; } = null!;
 
     [SimpleField(IsFilterable = true)]
     [JsonInclude]

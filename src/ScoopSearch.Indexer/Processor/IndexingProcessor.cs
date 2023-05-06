@@ -68,14 +68,16 @@ internal class IndexingProcessor : IIndexingProcessor
     private void UpdateManifestsMetadataWithDuplicateInfo(ref ManifestInfo[] manifestsFromRepositories)
     {
         var duplicatedManifestsGroups = manifestsFromRepositories
-            .GroupBy(_ => _.Metadata.ManifestHash)
+            .Select(_ => (manifest: _, hash: string.Concat(_.Name, _.Description, _.Homepage, _.License, _.Version).Sha1Sum()))
+            .GroupBy(_ => _.hash)
             .Where(_ => _.Count() > 1) // Limit to duplicates
-            .Where(_ => _.Select(_ => _.Metadata.Repository).Distinct().Count() > 1) // Limit to duplicates when found in different repositories
+            .Where(_ => _.Select(_ => _.manifest.Metadata.Repository).Distinct().Count() > 1) // Limit to duplicates when found in different repositories
             .ToArray();
 
         foreach (var duplicatedManifestsGroup in duplicatedManifestsGroups)
         {
             var prioritizedManifests = duplicatedManifestsGroup
+                .Select(_ => _.manifest)
                 .OrderByDescending(_ => _.Metadata.OfficialRepositoryNumber)
                 .ThenBy(_ => _.Metadata.Committed)
                 .ThenByDescending(_ => _.Metadata.RepositoryStars)
@@ -83,13 +85,19 @@ internal class IndexingProcessor : IIndexingProcessor
                 .ToArray();
             var originalManifest = prioritizedManifests.First();
 
-            _logger.LogInformation("Duplicated manifests with hash '{Hash}' found in {Manifests}. Choosing {Manifest} as the original one",
+            _logger.LogDebug("Duplicated manifests with hash '{Hash}' found in {Manifests}. Choosing {Manifest} as the original one",
                 duplicatedManifestsGroup.Key,
-                string.Join(", ", duplicatedManifestsGroup.Select(_ => _.Metadata.Repository + "/" + _.Metadata.FilePath)),
+                string.Join(", ", duplicatedManifestsGroup.Select(_ => _.manifest.Metadata.Repository + "/" + _.manifest.Metadata.FilePath)),
                 originalManifest.Metadata.Repository + "/" + originalManifest.Metadata.FilePath);
 
             prioritizedManifests.Skip(1).ForEach(_ => _.Metadata.SetDuplicateOf(originalManifest.Id));
         }
+
+        manifestsFromRepositories
+            .GroupBy(_ => _.Metadata.Repository)
+            .Select(_ => (bucket: _.Key, duplicates: _.Count(_ => _.Metadata.DuplicateOf != null)))
+            .Where(_ => _.duplicates > 0)
+            .ForEach(_ => _logger.LogInformation("{Count} duplicated manifests found in {Bucket}", _.duplicates, _.bucket));
     }
 
     private async Task UpsertManifestsAsync(ManifestInfo[] manifestsToAdd, ManifestInfo[] manifestsToUpdate, CancellationToken cancellationToken)

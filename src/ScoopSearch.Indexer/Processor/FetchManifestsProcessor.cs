@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Data;
-using ScoopSearch.Indexer.Extensions;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Manifest;
 
@@ -68,8 +67,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
                         repository.GetBranchName(),
                         filePath,
                         commit.Date,
-                        commit.Sha,
-                        manifestData.Sha1Sum());
+                        commit.Sha);
 
                     var manifest = CreateManifest(manifestData, manifestMetadata);
                     if (manifest != null)
