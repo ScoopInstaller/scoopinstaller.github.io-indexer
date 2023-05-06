@@ -51,6 +51,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
             var manifestsSubPath = files.Any(_ => _.StartsWith("bucket/")) ? "bucket" : null;
 
             bool IsManifestPredicate(string filePath) => (manifestsSubPath == null ? Path.GetDirectoryName(filePath)?.Length == 0 : Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true)
+                                                         && Path.GetFileName(filePath)[0] != '.'
                                                          && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
 
             var commitCache = repository.GetCommitsCache(IsManifestPredicate, cancellationToken);
