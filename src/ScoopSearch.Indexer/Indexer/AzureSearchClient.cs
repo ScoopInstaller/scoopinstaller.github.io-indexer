@@ -3,6 +3,7 @@ using Azure;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using Microsoft.Extensions.Options;
+using MoreLinq;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Data;
 
@@ -10,6 +11,8 @@ namespace ScoopSearch.Indexer.Indexer;
 
 internal class AzureSearchClient : ISearchClient
 {
+    private const int BatchSize = 1000;
+
     private readonly SearchClient _client;
 
     public AzureSearchClient(IOptions<AzureSearchOptions> options)
@@ -70,11 +73,11 @@ internal class AzureSearchClient : ISearchClient
 
     public async Task DeleteManifestsAsync(IEnumerable<ManifestInfo> manifests, CancellationToken token)
     {
-        await _client.DeleteDocumentsAsync(manifests, null, token);
+        await Parallel.ForEachAsync(manifests.Batch(BatchSize), token, async (batch, _) => { await _client.DeleteDocumentsAsync(batch, null, _); });
     }
 
     public async Task UpsertManifestsAsync(IEnumerable<ManifestInfo> manifests, CancellationToken token)
     {
-        await _client.UploadDocumentsAsync(manifests, null, token);
+        await Parallel.ForEachAsync(manifests.Batch(BatchSize), token, async (batch, _) => { await _client.UploadDocumentsAsync(batch, null, _); });
     }
 }
