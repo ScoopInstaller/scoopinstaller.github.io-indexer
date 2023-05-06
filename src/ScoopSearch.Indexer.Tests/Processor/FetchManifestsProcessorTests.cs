@@ -114,8 +114,6 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         using (new AssertionScope())
         {
             manifestInfo.Id.Should().Be("KEY_manifest2.json");
-            manifestInfo.Metadata.AuthorName.Should().Be("authorName_manifest2.json");
-            manifestInfo.Metadata.AuthorMail.Should().Be("authorMail_manifest2.json");
             manifestInfo.Metadata.Sha.Should().Be("sha_manifest2.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
@@ -148,8 +146,6 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         using (new AssertionScope())
         {
             manifestInfo.Id.Should().Be("KEY_manifest2.json");
-            manifestInfo.Metadata.AuthorName.Should().Be("authorName_manifest2.json");
-            manifestInfo.Metadata.AuthorMail.Should().Be("authorMail_manifest2.json");
             manifestInfo.Metadata.Sha.Should().Be("sha_manifest2.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
@@ -181,8 +177,6 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         using (new AssertionScope())
         {
             manifestInfo.Id.Should().Be("KEY_bucket/manifest1.json");
-            manifestInfo.Metadata.AuthorName.Should().Be("authorName_bucket/manifest1.json");
-            manifestInfo.Metadata.AuthorMail.Should().Be("authorMail_bucket/manifest1.json");
             manifestInfo.Metadata.Sha.Should().Be("sha_bucket/manifest1.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
@@ -202,7 +196,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
                 k => k.Path,
                 v => (IReadOnlyCollection<CommitInfo>)new[]
                 {
-                    new CommitInfo($"authorName_{v.Path}", $"authorMail_{v.Path}", DateTimeOffset.Now, $"sha_{v.Path}")
+                    new CommitInfo(DateTimeOffset.Now, $"sha_{v.Path}")
                 }));
         foreach (var entry in entries.Where(_ => _.Content != null))
         {

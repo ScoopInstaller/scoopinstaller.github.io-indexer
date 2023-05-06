@@ -66,8 +66,6 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
                         bucketUri.AbsoluteUri,
                         repository.GetBranchName(),
                         filePath,
-                        commit.AuthorName,
-                        commit.AuthorEmail,
                         commit.Date,
                         commit.Sha,
                         manifestData.Sha1Sum());

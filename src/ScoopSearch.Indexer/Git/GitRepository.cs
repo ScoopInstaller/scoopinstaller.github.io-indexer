@@ -52,7 +52,7 @@ internal class GitRepository : IGitRepository, IDisposable
             StartInfo = new ProcessStartInfo()
             {
                 FileName = _gitExecutable,
-                Arguments = @"log --pretty=format:""commit:%H%nauthor_name:%an%nauthor_email:%ae%ndate:%ai"" --name-only --first-parent",
+                Arguments = @"log --pretty=format:""commit:%H%ndate:%ai"" --name-only --first-parent",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 WorkingDirectory = _repository.Info.WorkingDirectory
@@ -61,8 +61,6 @@ internal class GitRepository : IGitRepository, IDisposable
 
         string? currentLine;
         string? sha = default;
-        string? authorName = default;
-        string? authorEmail = default;
         DateTimeOffset commitDate = default;
         List<string> files = new List<string>();
 
@@ -78,7 +76,7 @@ internal class GitRepository : IGitRepository, IDisposable
                     commitsCache.Add(file, list);
                 }
 
-                list.Add(new CommitInfo(authorName!, authorEmail!, commitDate, sha!));
+                list.Add(new CommitInfo(commitDate, sha!));
             }
 
             files.Clear();
@@ -91,12 +89,6 @@ internal class GitRepository : IGitRepository, IDisposable
             {
                 case "commit":
                     sha = currentLine.Substring(parts[0].Length + 1);
-                    break;
-                case "author_name":
-                    authorName = currentLine.Substring(parts[0].Length + 1);
-                    break;
-                case "author_email":
-                    authorEmail = currentLine.Substring(parts[0].Length + 1);
                     break;
                 case "date":
                     commitDate = DateTimeOffset.Parse(currentLine.Substring(parts[0].Length + 1));

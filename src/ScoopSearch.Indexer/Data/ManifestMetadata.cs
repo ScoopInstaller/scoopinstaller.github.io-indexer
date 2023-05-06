@@ -22,8 +22,6 @@ public class ManifestMetadata
         string repository,
         string branchName,
         string filePath,
-        string authorName,
-        string authorMail,
         DateTimeOffset committed,
         string sha,
         string manifestHash)
@@ -31,8 +29,6 @@ public class ManifestMetadata
         Repository = repository;
         BranchName = branchName;
         FilePath = filePath;
-        AuthorName = authorName;
-        AuthorMail = authorMail;
         Committed = committed;
         Sha = sha;
         ManifestHash = manifestHash;
@@ -62,14 +58,6 @@ public class ManifestMetadata
     [SimpleField(IsFilterable = true, IsSortable = true, IsFacetable = true)]
     [JsonInclude]
     public string? FilePath { get; private set; }
-
-    [SearchableField(IsFilterable = true, IsSortable = true, IsFacetable = true)]
-    [JsonInclude]
-    public string? AuthorName { get; private set; }
-
-    [SearchableField(IsFilterable = true, IsSortable = true, IsFacetable = true)]
-    [JsonInclude]
-    public string? AuthorMail { get; private set; }
 
     [SimpleField(IsFilterable = true, IsSortable = true, IsFacetable = true)]
     [JsonInclude]
