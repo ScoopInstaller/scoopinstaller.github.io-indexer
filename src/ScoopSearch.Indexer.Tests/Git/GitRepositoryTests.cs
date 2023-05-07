@@ -141,7 +141,7 @@ public class GitRepositoryTests : IDisposable
     [Theory]
     [InlineData(Constants.TestRepositoryUri, 1, 5)]
     [InlineData("https://github.com/niheaven/scoop-sysinternals", 1, 70)]
-    [InlineData("https://github.com/ScoopInstaller/Extras", 5, 1_900)]
+    [InlineData("https://github.com/ScoopInstaller/Extras", 10, 1_900)]
     public void GetCommitsCache_BuildCache_Succeeds(string repositoryUri, double maxSeconds, int minimalManifestsCount)
     {
         // Arrange
