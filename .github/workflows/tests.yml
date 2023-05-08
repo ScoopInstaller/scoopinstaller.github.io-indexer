@@ -37,7 +37,7 @@ jobs:
         dotnet tool install --global dotnet-coverage
 
     - name: Install dependencies
-      run: dotnet restore ${{ env.TESTS_PATH }} --verbosity detailed
+      run: dotnet restore ${{ env.TESTS_PATH }}
 
     - name: Start SonarScanner
       run: >
@@ -51,7 +51,7 @@ jobs:
     - name: Tests
       run: >
         dotnet-coverage collect
-        "dotnet test ${{ env.TESTS_PATH }} --configuration Release --no-restore --verbosity detailed"
+        "dotnet test ${{ env.TESTS_PATH }} --configuration Release --no-restore"
         -f xml
         -o "coverage.xml"
       env:
