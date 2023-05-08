@@ -1,41 +1,39 @@
 
-# ScoopInstaller Azure functions
+# ScoopSearch Indexer
 
-[![Azure functions workflow](https://github.com/ScoopInstaller/ScoopInstaller.AzureFunctions/actions/workflows/deployment.yml/badge.svg)](https://github.com/ScoopInstaller/ScoopInstaller.AzureFunctions/actions/workflows/deployment.yml)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ScoopInstaller_ScoopInstaller.AzureFunctions&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ScoopInstaller_ScoopInstaller.AzureFunctions)
+[![Indexer workflow](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/actions/workflows/indexer.yml/badge.svg)](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/actions/workflows/indexer.yml)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ScoopInstaller_ScoopInstaller.scoopinstaller.github.io-indexer&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ScoopInstaller_ScoopInstaller.AzureFunctions)
 
 
-This repository contains the Azure functions used to build and maintain the Scoop applications index used by https://scoopinstaller.github.io/
+This repository contains the Indexer used to build and maintain the Scoop applications index used by https://scoopinstaller.github.io/
 
-#### Prerequisites
-- [.NET 6.0 SDK](https://dotnet.microsoft.com/download/dotnet/6.0)
-- [Azure Functions Core Tools V4](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools)
+### Indexing
+The indexer runs every 2 hours and search for buckets accross the whole [GitHub site](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L18-L25) + some additional [inclusions/exclusions](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L28-L40).
 
-#### Configuration to build and debug
-- Copy `local.settings.json-sample` to `local.settings.json`
+### Configuration to build and debug the Indexer
+- Install [.NET 7.0 SDK](https://dotnet.microsoft.com/download/dotnet/7.0)
 - Create an *Azure Search* service
-  - Retrieve the name (in *Properties*) and use it for `AzureSearchServiceName`
-  - Retrieve the primary admin key (in *Keys*) and use it for `AzureSearchAdminApiKey`
-- Create an *Azure Storage* account
-  - Retrieve the connection string (in *Access keys*) and use it for `AzureWebJobsStorage`
-- Create a [*GitHub access token*](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) without any scope and use it for `GitHubToken`
+  - Retrieve the name (in *Properties*) and use it for `ServiceUrl`
+  - Retrieve the primary admin key (in *Keys*) and use it for `AdminApiKey`
+- Create a [*GitHub access token*](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) without any scope and use it for `Token`
+- Create a file `src/ScoopSearch.Indexer.Console/appsettings.Production.json` with the following content
+```
+{
+    "AzureSearch": {
+        "ServiceUrl": "https://[SERVICENAME].search.windows.net",
+        "AdminApiKey": "[ADMINAPIKEY]",
+        "IndexName": "[INDEXNAME]"
+    },
 
-#### Azure Functions list
-- `DispatchBucketsCrawler` - TimerTrigger, runs every 6 hours (as defined by `DispatchBucketsCrawlerCron`)
-  - Create a list of buckets based on the configuration provided in `settings.json`:
-    - Search on GitHub repositories for all possible buckets
-    - Include official buckets
-    - Include manually added buckets
-    - Exclude manually excluded buckets
-  - Remove non-existent buckets from the *Azure Search Service Index*
-  - Queue all buckets to index in an *Azure Queue Storage*
-
-
-- `BucketCrawler` - QueueTrigger, runs when a message *(bucket)* appears in the *Azure Queue Storage*
-  - Clone bucket repository
-  - Fetch all manifest files
-  - Update the *Azure Search Service Index* based on manifests content (add/remove/update)
-
-
-- `Version` - HttpTrigger, runs when accessing https://scoopsearch.azurewebsites.net/api/Version
-  - Return the deployed version
+    "GitHub": {
+        "Token": "[GITHUBTOKEN]"
+    }
+}
+```
+- Alternatively, you can declare environment variables
+```
+AzureSearch__ServiceUrl = "https://[SERVICENAME].search.windows.net"
+AzureSearch__AdminApiKey = "[ADMINAPIKEY]"
+AzureSearch__IndexName: "[INDEXNAME]"
+GitHub__Token = "[GITHUBTOKEN]"
+```
