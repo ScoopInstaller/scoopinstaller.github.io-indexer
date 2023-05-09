@@ -42,49 +42,56 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
         var results = new List<ManifestInfo>();
 
         var repository = _gitRepositoryProvider.Download(bucketUri, cancellationToken);
-        if (repository != null)
+        if (repository == null)
         {
-            _logger.LogDebug("Generating manifest infos from repository '{Repository}'", bucketUri);
-
-            var files = repository.GetFilesFromIndex().ToArray();
-            var manifestsSubPath = files.Any(_ => _.StartsWith("bucket/")) ? "bucket" : null;
-
-            bool IsManifestPredicate(string filePath) => (manifestsSubPath == null ? Path.GetDirectoryName(filePath)?.Length == 0 : Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true)
-                                                         && Path.GetFileName(filePath)[0] != '.'
-                                                         && ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
-
-            var commitCache = repository.GetCommitsCache(IsManifestPredicate, cancellationToken);
-
-            foreach (var filePath in files
-                         .Where(IsManifestPredicate)
-                         .TakeWhile(_ => !cancellationToken.IsCancellationRequested))
-            {
-                if (commitCache.TryGetValue(filePath, out var commits) && commits.FirstOrDefault() is { } commit)
-                {
-                    var manifestData = repository.ReadContent(filePath);
-                    var manifestMetadata = new ManifestMetadata(
-                        bucketUri.AbsoluteUri,
-                        repository.GetBranchName(),
-                        filePath,
-                        commit.Date,
-                        commit.Sha);
-
-                    var manifest = CreateManifest(manifestData, manifestMetadata);
-                    if (manifest != null)
-                    {
-                        results.Add(manifest);
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", filePath, bucketUri);
-                }
-            }
-
-            repository.Delete();
+            return results;
         }
 
+        _logger.LogDebug("Generating manifest infos from repository '{Repository}'", bucketUri);
+
+        var files = repository.GetFilesFromIndex().ToArray();
+        var manifestsSubPath = files.Any(_ => _.StartsWith("bucket/")) ? "bucket" : null;
+
+        var commitCache = repository.GetCommitsCache(_ => IsManifestPredicate(manifestsSubPath, _), cancellationToken);
+
+        foreach (var filePath in files
+                     .Where(_ => IsManifestPredicate(manifestsSubPath, _))
+                     .TakeWhile(_ => !cancellationToken.IsCancellationRequested))
+        {
+            if (commitCache.TryGetValue(filePath, out var commits) && commits.FirstOrDefault() is { } commit)
+            {
+                var manifestData = repository.ReadContent(filePath);
+                var manifestMetadata = new ManifestMetadata(
+                    bucketUri.AbsoluteUri,
+                    repository.GetBranchName(),
+                    filePath,
+                    commit.Date,
+                    commit.Sha);
+
+                var manifest = CreateManifest(manifestData, manifestMetadata);
+                if (manifest != null)
+                {
+                    results.Add(manifest);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", filePath, bucketUri);
+            }
+        }
+
+        repository.Delete();
+
         return results;
+    }
+
+    bool IsManifestPredicate(string? manifestsSubPath, string filePath)
+    {
+        var isManifest = manifestsSubPath == null ? Path.GetDirectoryName(filePath)?.Length == 0 : Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true;
+        isManifest &= Path.GetFileName(filePath)[0] != '.';
+        isManifest &= ".json".Equals(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
+
+        return isManifest;
     }
 
     private ManifestInfo? CreateManifest(string contentJson, ManifestMetadata metadata)

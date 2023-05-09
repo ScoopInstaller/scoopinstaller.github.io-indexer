@@ -133,7 +133,6 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
 
     private async Task<IDictionary<Uri, int>> SearchForBucketsOnGitHubAsync(CancellationToken cancellationToken)
     {
-        // TODO : Use GitHub API v4
         ConcurrentDictionary<Uri, int> buckets = new ConcurrentDictionary<Uri, int>();
         await Parallel.ForEachAsync(_bucketOptions.GithubBucketsSearchQueries,
             new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },

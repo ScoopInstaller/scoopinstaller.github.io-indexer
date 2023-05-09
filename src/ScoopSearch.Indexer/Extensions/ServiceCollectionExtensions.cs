@@ -41,8 +41,7 @@ internal static class ServiceCollectionExtensions
                         {
                             var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
                             var delay = rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
-                            provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
-                                $"Received GitHub rate-limit response. Waiting for {delay} seconds before retrying");
+                            provider.GetRequiredService<ILogger<HttpClient>>().LogWarning("Received GitHub rate-limit response. Waiting for {Delay} seconds before retrying", delay);
 
                             return delay;
                         }

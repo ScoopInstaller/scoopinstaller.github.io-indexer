@@ -110,12 +110,10 @@ internal class IndexingProcessor : IIndexingProcessor
         {
             manifestsToAdd
                 .GroupBy(_ => _.Metadata.Repository)
-                .ToArray()
                 .ForEach(_ => _logger.LogInformation("Adding {Count} manifests from {Bucket}", _.Count(), _.Key));
 
             manifestsToUpdate
                 .GroupBy(_ => _.Metadata.Repository)
-                .ToArray()
                 .ForEach(_ => _logger.LogInformation("Updating {Count} manifests from {Bucket}", _.Count(), _.Key));
             await _searchClient.UpsertManifestsAsync(manifestsToAddOrUpdate, cancellationToken);
         }

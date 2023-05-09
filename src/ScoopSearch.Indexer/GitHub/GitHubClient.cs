@@ -34,7 +34,7 @@ internal class GitHubClient : IGitHubClient
 
     public async Task<GitHubRepo?> GetRepoAsync(Uri uri, CancellationToken cancellationToken)
     {
-        if (uri.Host.EndsWith(GitHubDomain, StringComparison.Ordinal) == false)
+        if (!uri.Host.EndsWith(GitHubDomain, StringComparison.Ordinal))
         {
             throw new ArgumentException("The URI must be a GitHub repo URI", nameof(uri));
         }
