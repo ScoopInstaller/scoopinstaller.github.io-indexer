@@ -54,8 +54,6 @@ jobs:
         "dotnet test ${{ env.TESTS_PATH }} --configuration Release --no-restore"
         -f xml
         -o "coverage.xml"
-      env:
-        GitHubToken: ${{ secrets.GITHUBTOKEN }}
 
     - name: Stop SonarScanner and send analysis
       run: |
