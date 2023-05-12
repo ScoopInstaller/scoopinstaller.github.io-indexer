@@ -46,7 +46,7 @@ internal class GitHubClient : IGitHubClient
 
     public async Task<GitHubRepo?> GetRepositoryAsync(Uri uri, CancellationToken cancellationToken)
     {
-        if (!uri.Host.EndsWith(GitHubDomain, StringComparison.Ordinal))
+        if (!IsValidRepositoryDomain(uri))
         {
             throw new ArgumentException("The URI must be a GitHub repo URI", nameof(uri));
         }
@@ -64,6 +64,11 @@ internal class GitHubClient : IGitHubClient
                     return null;
                 }
             }, cancellationToken);
+    }
+
+    public bool IsValidRepositoryDomain(Uri uri)
+    {
+        return uri.Host.EndsWith(GitHubDomain, StringComparison.Ordinal);
     }
 
     public async IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string query, [EnumeratorCancellation] CancellationToken cancellationToken)

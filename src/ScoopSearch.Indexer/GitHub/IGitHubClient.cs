@@ -8,5 +8,7 @@ public interface IGitHubClient
 
     Task<GitHubRepo?> GetRepositoryAsync(Uri uri, CancellationToken cancellationToken);
 
+    bool IsValidRepositoryDomain(Uri uri);
+
     IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string query, CancellationToken cancellationToken);
 }

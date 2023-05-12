@@ -47,6 +47,7 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
             .Concat(manualBucketsTask.Result)
             .Except(_bucketOptions.IgnoredBuckets)
             .Except(ignoredBucketsTask.Result)
+            .Where(_gitHubClient.IsValidRepositoryDomain)
             .DistinctBy(_ => _.AbsoluteUri.ToLowerInvariant())
             .ToHashSet();
 
