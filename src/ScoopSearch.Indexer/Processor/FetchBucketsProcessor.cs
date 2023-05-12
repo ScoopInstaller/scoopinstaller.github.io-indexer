@@ -29,8 +29,8 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
         _logger.LogInformation("Retrieving buckets from sources");
         var officialBucketsTask = RetrieveOfficialBucketsAsync(cancellationToken);
         var githubBucketsTask = SearchForBucketsOnGitHubAsync(cancellationToken);
-        var ignoredBucketsTask = RetrieveBucketsAsync(this._bucketOptions.IgnoredBucketsListUrl, false, cancellationToken);
-        var manualBucketsTask = RetrieveBucketsAsync(this._bucketOptions.ManualBucketsListUrl, true, cancellationToken);
+        var ignoredBucketsTask = RetrieveBucketsAsync(_bucketOptions.IgnoredBucketsListUrl, false, cancellationToken);
+        var manualBucketsTask = RetrieveBucketsAsync(_bucketOptions.ManualBucketsListUrl, true, cancellationToken);
 
         await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
 

@@ -31,7 +31,7 @@ internal class LicenseConverter : JsonConverter<string?>
         {
             while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
             {
-                licenses.Add(this.Read(ref reader, typeToConvert, options));
+                licenses.Add(Read(ref reader, typeToConvert, options));
             }
         }
 
