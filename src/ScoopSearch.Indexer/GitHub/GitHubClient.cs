@@ -1,4 +1,9 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Octokit.GraphQL;
+using Octokit.GraphQL.Core;
+using Octokit.GraphQL.Internal;
+using Octokit.GraphQL.Model;
 
 namespace ScoopSearch.Indexer.GitHub;
 
@@ -9,11 +14,18 @@ internal class GitHubClient : IGitHubClient
 
     private readonly HttpClient _githubHttpClient;
     private readonly HttpClient _githubHttpClientNoRedirect;
+    private readonly Lazy<Connection> _graphQLConnection;
 
     public GitHubClient(IHttpClientFactory httpClientFactory)
     {
         _githubHttpClient = httpClientFactory.CreateClient(Constants.GitHubHttpClientName);
         _githubHttpClientNoRedirect = httpClientFactory.CreateClient(Constants.GitHubHttpClientNoRedirectName);
+
+        var userAgent = _githubHttpClient.DefaultRequestHeaders.UserAgent.Single().Product!;
+        _graphQLConnection = new Lazy<Connection>(() => new Connection(
+            new ProductHeaderValue(userAgent.Name, userAgent.Version),
+            new InMemoryCredentialStore(_githubHttpClient.DefaultRequestHeaders.Authorization!.Parameter),
+            _githubHttpClient));
     }
 
     public async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)
@@ -32,7 +44,7 @@ internal class GitHubClient : IGitHubClient
         return (followRedirects ? _githubHttpClient : _githubHttpClientNoRedirect).SendAsync(request, cancellationToken);
     }
 
-    public async Task<GitHubRepo?> GetRepoAsync(Uri uri, CancellationToken cancellationToken)
+    public async Task<GitHubRepo?> GetRepositoryAsync(Uri uri, CancellationToken cancellationToken)
     {
         if (!uri.Host.EndsWith(GitHubDomain, StringComparison.Ordinal))
         {
@@ -54,9 +66,35 @@ internal class GitHubClient : IGitHubClient
             }, cancellationToken);
     }
 
-    public async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
+    public async IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string query, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        return await GetAsStringAsync(searchUri, cancellationToken)
-            .ContinueWith(task => JsonSerializer.Deserialize<GitHubSearchResults>(task.Result), cancellationToken);
+        var compiledSearchQuery = new Query()
+            .Search(new Arg<string>("query", false), SearchType.Repository, first: 100, after: new Arg<string>("after", true))
+            .Select(connection => new
+            {
+                EndCursor = connection.PageInfo.EndCursor,
+                HasNextPage = connection.PageInfo.HasNextPage,
+                TotalCount = connection.RepositoryCount,
+                Repos = connection.Nodes.OfType<Repository>().Select(item => new { Url = new Uri(item.Url), Stars = item.StargazerCount }).ToList()
+            })
+            .Compile();
+
+        var vars = new Dictionary<string, object?>
+        {
+            { "query", query },
+            { "after", null },
+        };
+
+        do
+        {
+            var page = await _graphQLConnection.Value.Run(compiledSearchQuery, vars, cancellationToken);
+            foreach (var repo in page.Repos)
+            {
+                yield return new GitHubRepo(repo.Url, repo.Stars);
+            }
+
+            vars["after"] = page.HasNextPage ? page.EndCursor : null;
+
+        } while (vars["after"] != null);
     }
 }

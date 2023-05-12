@@ -6,7 +6,7 @@ public class BucketsOptions
 
     public Uri OfficialBucketsListUrl { get; set; } = null!;
 
-    public List<Uri> GithubBucketsSearchQueries { get; set; } = new List<Uri>();
+    public string[] GithubBucketsSearchQueries { get; set; } = {};
 
     public HashSet<Uri> IgnoredBuckets { get; set; } = new HashSet<Uri>();
 

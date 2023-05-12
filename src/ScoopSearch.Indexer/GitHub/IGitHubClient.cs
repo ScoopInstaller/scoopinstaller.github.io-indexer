@@ -6,7 +6,7 @@ public interface IGitHubClient
 
     Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, bool followRedirects, CancellationToken cancellationToken);
 
-    Task<GitHubRepo?> GetRepoAsync(Uri uri, CancellationToken cancellationToken);
+    Task<GitHubRepo?> GetRepositoryAsync(Uri uri, CancellationToken cancellationToken);
 
-    Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken);
+    IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string query, CancellationToken cancellationToken);
 }

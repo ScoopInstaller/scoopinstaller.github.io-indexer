@@ -1,20 +1,15 @@
-﻿using System.Collections.Concurrent;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Data;
-using ScoopSearch.Indexer.Extensions;
 using ScoopSearch.Indexer.GitHub;
 
 namespace ScoopSearch.Indexer.Processor;
 
 internal class FetchBucketsProcessor : IFetchBucketsProcessor
 {
-    private const int ResultsPerPage = 100;
-    private const int MaxDegreeOfParallelism = 8;
-
     private readonly IGitHubClient _gitHubClient;
     private readonly ILogger _logger;
     private readonly BucketsOptions _bucketOptions;
@@ -58,7 +53,7 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
         _logger.LogInformation("{Count} buckets found for indexing", allBuckets.Count);
         var bucketsToIndexTasks = allBuckets.Select(async _ =>
         {
-            var stars = githubBucketsTask.Result.TryGetValue(_, out var value) ? value : (await _gitHubClient.GetRepoAsync(_, cancellationToken))?.Stars ?? -1;
+            var stars = githubBucketsTask.Result.TryGetValue(_, out var value) ? value : (await _gitHubClient.GetRepositoryAsync(_, cancellationToken))?.Stars ?? -1;
             var official = officialBucketsTask.Result.Contains(_);
             _logger.LogDebug("Adding bucket '{Url}' (stars: {Stars}, official: {Official})", _, stars, official);
 
@@ -133,28 +128,14 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
 
     private async Task<IDictionary<Uri, int>> SearchForBucketsOnGitHubAsync(CancellationToken cancellationToken)
     {
-        ConcurrentDictionary<Uri, int> buckets = new ConcurrentDictionary<Uri, int>();
-        await Parallel.ForEachAsync(_bucketOptions.GithubBucketsSearchQueries,
-            new ParallelOptions() { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
-            async (gitHubSearchQuery, cancellationToken) =>
+        Dictionary<Uri, int> buckets = new Dictionary<Uri, int>();
+        foreach (var searchQuery in _bucketOptions.GithubBucketsSearchQueries)
+        {
+            await foreach (var repository in _gitHubClient.SearchRepositoriesAsync(searchQuery, cancellationToken))
             {
-                // First query to retrieve total_count and first results
-                var firstSearchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page=1&sort=updated");
-                var firstResults = await _gitHubClient.GetSearchResultsAsync(firstSearchUri, cancellationToken);
-                if (firstResults != null)
-                {
-                    firstResults.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
-
-                    // Using TotalCount, parallelize the remaining queries for all the remaining pages of results
-                    var totalPages = (int)Math.Ceiling(firstResults.TotalCount / (double)ResultsPerPage);
-                    for (int page = 2; page <= totalPages; page++)
-                    {
-                        var searchUri = new Uri($"{gitHubSearchQuery}&per_page={ResultsPerPage}&page={page}&sort=updated");
-                        var results = await _gitHubClient.GetSearchResultsAsync(searchUri, cancellationToken);
-                        results?.Items.ForEach(item => buckets[item.HtmlUri] = item.Stars);
-                    }
-                }
-            });
+                buckets[repository.HtmlUri] = repository.Stars;
+            }
+        }
 
         return buckets;
     }
