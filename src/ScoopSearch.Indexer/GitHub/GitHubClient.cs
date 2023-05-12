@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Octokit.GraphQL;
 using Octokit.GraphQL.Core;
-using Octokit.GraphQL.Internal;
 using Octokit.GraphQL.Model;
 
 namespace ScoopSearch.Indexer.GitHub;
@@ -24,8 +23,7 @@ internal class GitHubClient : IGitHubClient
         var userAgent = _githubHttpClient.DefaultRequestHeaders.UserAgent.Single().Product!;
         _graphQLConnection = new Lazy<Connection>(() => new Connection(
             new ProductHeaderValue(userAgent.Name, userAgent.Version),
-            new InMemoryCredentialStore(_githubHttpClient.DefaultRequestHeaders.Authorization!.Parameter),
-            _githubHttpClient));
+            _githubHttpClient.DefaultRequestHeaders.Authorization!.Parameter));
     }
 
     public async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)
