@@ -8,7 +8,7 @@
 This repository contains the Indexer used to build and maintain the Scoop applications index used by https://scoopinstaller.github.io/
 
 ### Indexing
-The indexer runs every 2 hours and search for buckets accross the whole [GitHub site](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L18-L25) + some additional [inclusions/exclusions](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L28-L40).
+The indexer runs twice a day and search for buckets across the whole [GitHub site](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L18-L25) + some additional [inclusions/exclusions](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L28-L40).
 
 ### Configuration to build and debug the Indexer
 - Install [.NET 7.0 SDK](https://dotnet.microsoft.com/download/dotnet/7.0)
