@@ -33,7 +33,7 @@ internal static class ServiceCollectionExtensions
                     .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
                     .OrTransientHttpStatusCode()
                     .WaitAndRetryAsync(
-                        2,
+                        5,
                         (retryAttempt, result, _) => result.Result?.StatusCode == HttpStatusCode.Forbidden
                             ? TimeSpan.FromSeconds(35)
                             : TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
