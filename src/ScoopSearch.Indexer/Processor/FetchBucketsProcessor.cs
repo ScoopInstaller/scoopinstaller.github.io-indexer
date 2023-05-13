@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -129,14 +130,16 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
 
     private async Task<IDictionary<Uri, int>> SearchForBucketsOnGitHubAsync(CancellationToken cancellationToken)
     {
-        Dictionary<Uri, int> buckets = new Dictionary<Uri, int>();
-        foreach (var searchQuery in _bucketOptions.GithubBucketsSearchQueries)
-        {
-            await foreach (var repository in _gitHubClient.SearchRepositoriesAsync(searchQuery, cancellationToken))
+        ConcurrentDictionary<Uri, int> buckets = new ConcurrentDictionary<Uri, int>();
+        await Parallel.ForEachAsync(_bucketOptions.GithubBucketsSearchQueries,
+            new ParallelOptions() { CancellationToken = cancellationToken },
+            async (gitHubSearchQuery, token) =>
             {
-                buckets[repository.HtmlUri] = repository.Stars;
-            }
-        }
+                await foreach (var repository in _gitHubClient.SearchRepositoriesAsync(gitHubSearchQuery, token))
+                {
+                    buckets[repository.HtmlUri] = repository.Stars;
+                }
+            });
 
         return buckets;
     }
