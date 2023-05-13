@@ -1,7 +1,10 @@
+using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
+using Polly.Extensions.Http;
 using ScoopSearch.Indexer.Configuration;
 
 namespace ScoopSearch.Indexer.Extensions;
@@ -24,7 +27,16 @@ internal static class ServiceCollectionExtensions
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
             })
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = allowAutoRedirect })
-            .AddTransientHttpErrorPolicy(builder => builder.WaitAndRetryAsync(4, attempt => TimeSpan.FromSeconds(Math.Min(1, (attempt - 1) * 5))));
+            .AddPolicyHandler((provider, _) => HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .OrResult(msg => msg.StatusCode == HttpStatusCode.Forbidden)
+                .WaitAndRetryAsync(
+                    6,
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (result, timeSpan, retryCount, context) =>
+                    {
+                        provider.GetRequiredService<ILogger<HttpClient>>().LogWarning("GitHub API request failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.", result.Result.StatusCode, timeSpan, retryCount);
+                    }));
     }
 }
 

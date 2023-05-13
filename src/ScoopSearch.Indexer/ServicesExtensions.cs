@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Extensions;
 using ScoopSearch.Indexer.Git;
