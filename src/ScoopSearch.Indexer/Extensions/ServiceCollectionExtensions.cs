@@ -29,7 +29,7 @@ internal static class ServiceCollectionExtensions
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = allowAutoRedirect })
             .AddPolicyHandler((provider, message) =>
             {
-                var rateLimitPolicy = Policy.RateLimitAsync<HttpResponseMessage>(10, TimeSpan.FromSeconds(1));
+                var rateLimitPolicy = Policy.RateLimitAsync<HttpResponseMessage>(5, TimeSpan.FromSeconds(1));
                 var retryPolicy = Policy<HttpResponseMessage>
                     .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
                     .OrTransientHttpStatusCode()
