@@ -27,15 +27,27 @@ internal static class ServiceCollectionExtensions
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
             })
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = allowAutoRedirect })
-            .AddPolicyHandler((provider, _) => HttpPolicyExtensions
-                .HandleTransientHttpError()
-                .OrResult(msg => msg.StatusCode == HttpStatusCode.Forbidden)
-                .WaitAndRetryAsync(
-                    new[] { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30) },
-                    (result, timeSpan, retryCount, context) =>
-                    {
-                        provider.GetRequiredService<ILogger<HttpClient>>().LogWarning("GitHub API request failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.", result.Result?.StatusCode, timeSpan, retryCount);
-                    }));
+            .AddPolicyHandler((provider, message) =>
+            {
+                var rateLimitPolicy = Policy.RateLimitAsync<HttpResponseMessage>(10, TimeSpan.FromSeconds(1));
+                var retryPolicy = Policy<HttpResponseMessage>
+                    .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
+                    .OrTransientHttpStatusCode()
+                    .WaitAndRetryAsync(
+                        6,
+                        retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                        (result, timeSpan, retryCount, _) =>
+                        {
+                            provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
+                                "HttpClient {Name} failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.",
+                                name,
+                                result.Result?.StatusCode,
+                                timeSpan,
+                                retryCount);
+                        });
+
+                return Policy.WrapAsync(rateLimitPolicy, retryPolicy);
+            });
     }
 }
 

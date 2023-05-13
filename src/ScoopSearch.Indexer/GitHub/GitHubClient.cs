@@ -25,7 +25,7 @@ internal class GitHubClient : IGitHubClient
         _graphQLConnection = new Lazy<Connection>(() => new Connection(
             new ProductHeaderValue(userAgent.Name, userAgent.Version),
             new InMemoryCredentialStore(_githubHttpClient.DefaultRequestHeaders.Authorization!.Parameter),
-            _githubHttpClient));
+            httpClientFactory.CreateClient(Constants.GitHubHttpClientGraphQLName)));
     }
 
     public async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)

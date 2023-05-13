@@ -28,6 +28,7 @@ public static class ServicesExtensions
         // Services
         @this.AddHttpClient(Constants.GitHubHttpClientName, true);
         @this.AddHttpClient(Constants.GitHubHttpClientNoRedirectName, false);
+        @this.AddHttpClient(Constants.GitHubHttpClientGraphQLName, true);
         @this.AddSingleton<IGitRepositoryProvider, GitRepositoryProvider>();
         @this.AddSingleton<IGitHubClient, GitHubClient>();
         @this.AddSingleton<ISearchClient, AzureSearchClient>();
