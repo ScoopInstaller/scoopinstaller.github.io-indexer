@@ -31,11 +31,10 @@ internal static class ServiceCollectionExtensions
                 .HandleTransientHttpError()
                 .OrResult(msg => msg.StatusCode == HttpStatusCode.Forbidden)
                 .WaitAndRetryAsync(
-                    6,
-                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    new[] { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30) },
                     (result, timeSpan, retryCount, context) =>
                     {
-                        provider.GetRequiredService<ILogger<HttpClient>>().LogWarning("GitHub API request failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.", result.Result.StatusCode, timeSpan, retryCount);
+                        provider.GetRequiredService<ILogger<HttpClient>>().LogWarning("GitHub API request failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.", result.Result?.StatusCode, timeSpan, retryCount);
                     }));
     }
 }
