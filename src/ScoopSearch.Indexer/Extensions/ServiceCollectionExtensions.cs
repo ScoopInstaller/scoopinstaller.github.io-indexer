@@ -29,13 +29,14 @@ internal static class ServiceCollectionExtensions
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = allowAutoRedirect })
             .AddPolicyHandler((provider, message) =>
             {
-                var rateLimitPolicy = Policy.RateLimitAsync<HttpResponseMessage>(5, TimeSpan.FromSeconds(1));
-                var retryPolicy = Policy<HttpResponseMessage>
+                return Policy<HttpResponseMessage>
                     .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
                     .OrTransientHttpStatusCode()
                     .WaitAndRetryAsync(
-                        6,
-                        retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                        2,
+                        (retryAttempt, result, _) => result.Result?.StatusCode == HttpStatusCode.Forbidden
+                            ? TimeSpan.FromSeconds(35)
+                            : TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                         (result, timeSpan, retryCount, _) =>
                         {
                             provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
@@ -44,9 +45,9 @@ internal static class ServiceCollectionExtensions
                                 result.Result?.StatusCode,
                                 timeSpan,
                                 retryCount);
-                        });
 
-                return Policy.WrapAsync(rateLimitPolicy, retryPolicy);
+                            return Task.CompletedTask;
+                        });
             });
     }
 }
