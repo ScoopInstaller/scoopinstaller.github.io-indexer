@@ -15,10 +15,6 @@ internal static class ServiceCollectionExtensions
         return services
             .AddHttpClient(name, (serviceProvider, client) =>
             {
-                // GitHub requires a specific Accept header to search repositories by topic
-                // https://developer.github.com/v3/search/#search-repositories
-                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.mercy-preview+json");
-
                 // Github requires a user-agent
                 var assemblyName = typeof(Extensions).Assembly.GetName();
                 client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(
