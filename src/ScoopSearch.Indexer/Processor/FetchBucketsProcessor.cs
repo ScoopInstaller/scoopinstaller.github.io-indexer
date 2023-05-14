@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -35,12 +36,12 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
 
         await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
 
-        _logger.LogInformation("Found {Count} official buckets ({Url})", officialBucketsTask.Result.Count, _bucketOptions.OfficialBucketsListUrl);
+        _logger.LogInformation("Found {Count} official buckets ({Url})", officialBucketsTask.Result.Count(), _bucketOptions.OfficialBucketsListUrl);
         _logger.LogInformation("Found {Count} buckets on GitHub", githubBucketsTask.Result.Count);
         _logger.LogInformation("Found {Count} buckets to ignore (appsettings.json)", _bucketOptions.IgnoredBuckets.Count);
-        _logger.LogInformation("Found {Count} buckets to ignore from external list ({Url})", ignoredBucketsTask.Result.Count, _bucketOptions.IgnoredBucketsListUrl);
+        _logger.LogInformation("Found {Count} buckets to ignore from external list ({Url})", ignoredBucketsTask.Result.Count(), _bucketOptions.IgnoredBucketsListUrl);
         _logger.LogInformation("Found {Count} buckets to add (appsettings.json)", _bucketOptions.ManualBuckets.Count);
-        _logger.LogInformation("Found {Count} buckets to add from external list ({Url})", manualBucketsTask.Result.Count, _bucketOptions.ManualBucketsListUrl);
+        _logger.LogInformation("Found {Count} buckets to add from external list ({Url})", manualBucketsTask.Result.Count(), _bucketOptions.ManualBucketsListUrl);
 
         var allBuckets = githubBucketsTask.Result.Keys
             .Concat(officialBucketsTask.Result)
@@ -65,67 +66,77 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
         return await Task.WhenAll(bucketsToIndexTasks);
     }
 
-    private async Task<HashSet<Uri>> RetrieveOfficialBucketsAsync(CancellationToken cancellationToken)
+    private async Task<IEnumerable<Uri>> RetrieveOfficialBucketsAsync(CancellationToken cancellationToken)
     {
         var contentJson = await _gitHubClient.GetAsStringAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken);
         var officialBuckets = JsonSerializer.Deserialize<Dictionary<string, string>>(contentJson)?.Values;
 
-        return officialBuckets?.Select(_ => new Uri(_)).ToHashSet() ?? new HashSet<Uri>();
+        return officialBuckets?.Select(_ => new Uri(_)).ToHashSet() ?? Enumerable.Empty<Uri>();
     }
 
-    private async Task<HashSet<Uri>> RetrieveBucketsAsync(Uri bucketsList, bool followRedirects, CancellationToken cancellationToken)
+    private async Task<IEnumerable<Uri>> RetrieveBucketsAsync(Uri bucketsList, bool followRedirects, CancellationToken cancellationToken)
     {
-        HashSet<Uri> buckets = new HashSet<Uri>();
-        try
+        ConcurrentBag<Uri> buckets = new();
+
+        var tasks = new List<Task>();
+        await foreach (var uri in GetBucketsFromList(bucketsList, cancellationToken))
         {
-            var content = await _gitHubClient.GetAsStringAsync(bucketsList, cancellationToken);
-            using (var csv = new CsvHelper.CsvReader(new StringReader(content), CultureInfo.InvariantCulture))
-            {
-                csv.Read();
-                csv.ReadHeader();
-
-                while (csv.Read())
-                {
-                    var uri = csv.GetField<string>("url");
-                    if (uri == null)
-                    {
-                        continue;
-                    }
-
-                    if (uri.EndsWith(".git"))
-                    {
-                        uri = uri.Substring(0, uri.Length - 4);
-                    }
-
-                    // Validate uri (existing repository, follow redirections...)
-                    using (var request = new HttpRequestMessage(HttpMethod.Head, uri))
-                    using (var response = await _gitHubClient.SendAsync(request, followRedirects, cancellationToken))
-                    {
-                        if (request.RequestUri != null)
-                        {
-                            if (!response.IsSuccessStatusCode)
-                            {
-                                _logger.LogWarning("Skipping '{Uri}' because it returns '{Status}' status (from '{BucketsList}')", uri, (int)response.StatusCode, bucketsList);
-                                continue;
-                            }
-
-                            if (request.RequestUri != new Uri(uri))
-                            {
-                                _logger.LogDebug("'{Uri}' redirects to '{RedirectUri}' (from '{BucketsList}')", uri, request.RequestUri, bucketsList);
-                            }
-
-                            buckets.Add(request.RequestUri);
-                        }
-                    }
-                }
-            }
+            tasks.Add(GetTargetRepository(uri, followRedirects, cancellationToken)
+                .ContinueWith(t => { if (t.Result != null) { buckets.Add(t.Result); } }, cancellationToken));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unable to read/parse data from '{BucketList}'", bucketsList);
-        }
+
+        await Task.WhenAll(tasks);
 
         return buckets;
+    }
+
+    private async IAsyncEnumerable<Uri> GetBucketsFromList(Uri bucketsList, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var content = await _gitHubClient.GetAsStringAsync(bucketsList, cancellationToken);
+        using var csv = new CsvHelper.CsvReader(new StringReader(content), CultureInfo.InvariantCulture);
+        await csv.ReadAsync();
+        csv.ReadHeader();
+
+        while (await csv.ReadAsync())
+        {
+            var uri = csv.GetField<string>("url");
+            if (uri == null)
+            {
+                continue;
+            }
+
+            if (uri.EndsWith(".git"))
+            {
+                uri = uri.Substring(0, uri.Length - 4);
+            }
+
+            yield return new Uri(uri);
+        }
+    }
+
+    private async Task<Uri?> GetTargetRepository(Uri uri, bool followRedirects, CancellationToken cancellationToken)
+    {
+        // Validate uri (existing repository, follow redirections...)
+        using var request = new HttpRequestMessage(HttpMethod.Head, uri);
+        using var response = await _gitHubClient.SendAsync(request, followRedirects, cancellationToken);
+
+        if (request.RequestUri != null)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Skipping '{Uri}' because it returns '{Status}' status", uri, response.StatusCode);
+                return null;
+            }
+
+            if (request.RequestUri != uri)
+            {
+                _logger.LogDebug("'{Uri}' redirects to '{RedirectUri}'", uri, request.RequestUri);
+            }
+
+            return request.RequestUri;
+        }
+
+        return null;
     }
 
     private async Task<IDictionary<Uri, int>> SearchForBucketsOnGitHubAsync(CancellationToken cancellationToken)
