@@ -8,9 +8,9 @@ env:
   OUTPUT_PATH: ${{ github.workspace }}/output
   APP_PATH: ${{ github.workspace }}/src/ScoopSearch.Indexer.Console/
   GitHub__Token: ${{ secrets.APPSETTINGS_GITHUBTOKEN }}
-  AzureSearch__ServiceUrl: ${{ secrets.APPSETTINGS_AZURESEARCHSERVICEURL }}
+  AzureSearch__ServiceUrl: ${{ vars.APPSETTINGS_AZURESEARCHSERVICEURL }}
   AzureSearch__AdminApiKey: ${{ secrets.APPSETTINGS_AZURESEARCHADMINAPIKEY }}
-  AzureSearch__IndexName: ${{ secrets.APPSETTINGS_AZURESEARCHINDEXNAME }}
+  AzureSearch__IndexName: ${{ vars.APPSETTINGS_AZURESEARCHINDEXNAME }}
   DOTNET_VERSION: '7.0.x'
 
 jobs:
