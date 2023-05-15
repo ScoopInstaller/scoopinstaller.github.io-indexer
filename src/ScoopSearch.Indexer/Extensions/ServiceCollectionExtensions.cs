@@ -4,13 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
+using Polly.Extensions.Http;
 using ScoopSearch.Indexer.Configuration;
 
 namespace ScoopSearch.Indexer.Extensions;
 
 internal static class ServiceCollectionExtensions
 {
-    public static IHttpClientBuilder AddHttpClient(this IServiceCollection services, string name, bool allowAutoRedirect)
+    public static IHttpClientBuilder AddHttpClient(this IServiceCollection services, string name, bool followAutoRedirect)
     {
         return services
             .AddHttpClient(name, (serviceProvider, client) =>
@@ -25,26 +26,33 @@ internal static class ServiceCollectionExtensions
                 var gitHubOptions = serviceProvider.GetRequiredService<IOptions<GitHubOptions>>();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
             })
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = allowAutoRedirect })
-            .AddTransientHttpErrorPolicy(builder => builder.WaitAndRetryAsync(4, attempt => TimeSpan.FromSeconds(Math.Min(1, (attempt - 1) * 5))))
-            .AddPolicyHandler((provider, _) =>
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = followAutoRedirect })
+            .AddPolicyHandler((provider, _) => CreateRetryPolicy(provider, name));
+    }
+
+    private static IAsyncPolicy<HttpResponseMessage> CreateRetryPolicy(IServiceProvider provider, string httpClientName)
+    {
+        return Policy<HttpResponseMessage>
+            .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
+            .OrTransientHttpStatusCode()
+            .WaitAndRetryAsync(5, (retryAttempt, result, _) =>
             {
-                return Policy<HttpResponseMessage>
-                    .HandleResult(result => result.IsSuccessStatusCode == false && result.StatusCode == HttpStatusCode.Forbidden)
-                    .WaitAndRetryAsync(4, (_, result, _) =>
-                    {
-                        if (result.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
-                        {
-                            var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
-                            var delay = rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
-                            provider.GetRequiredService<ILogger<HttpClient>>().LogWarning("Received GitHub rate-limit response. Waiting for {Delay} seconds before retrying", delay);
+                TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
+                if (result.Result?.StatusCode == HttpStatusCode.Forbidden && result.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+                {
+                    var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
+                    delay = rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
+                }
 
-                            return delay;
-                        }
+                provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
+                    "HttpClient {Name} failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.",
+                    httpClientName,
+                    result.Result?.StatusCode,
+                    delay,
+                    retryAttempt);
 
-                        throw new NotSupportedException("Unknown forbidden error");
-                    }, (_, _, _, _) => Task.CompletedTask);
-            });
+                return delay;
+            }, (_, _, _, _) => Task.CompletedTask);
     }
 }
 

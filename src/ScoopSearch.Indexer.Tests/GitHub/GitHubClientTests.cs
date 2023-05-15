@@ -71,13 +71,13 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [Theory]
     [InlineData("http://example.invalid/foo/bar")]
     [InlineData("http://example.com/foo/bar")]
-    public async void GetRepoAsync_InvalidRepo_Throws(string input)
+    public async void GetRepositoryAsync_InvalidRepo_Throws(string input)
     {
         // Arrange
         var uri = new Uri(input);
 
         // Act
-        Func<Task> act = () => _sut.GetRepoAsync(uri, CancellationToken.None);
+        Func<Task> act = () => _sut.GetRepositoryAsync(uri, CancellationToken.None);
 
         // Assert
         (await act.Should().ThrowAsync<ArgumentException>())
@@ -85,13 +85,13 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void GetRepoAsync_NonExistentRepo_ReturnsNull()
+    public async void GetRepositoryAsync_NonExistentRepo_ReturnsNull()
     {
         // Arrange
         var uri = new Uri(Constants.NonExistentTestRepositoryUri);
 
         // Act
-        var result = await _sut.GetRepoAsync(uri, CancellationToken.None);
+        var result = await _sut.GetRepositoryAsync(uri, CancellationToken.None);
 
         // Assert
         result.Should().BeNull();
@@ -100,13 +100,13 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [Theory]
     [InlineData("https://github.com/ScoopInstaller/Main", 1000)]
     [InlineData("https://github.com/ScoopInstaller/Extras", 1500)]
-    public async void GetRepoAsync_ValidRepo_ReturnsGitHubRepo(string input, int expectedMinimumStars)
+    public async void GetRepositoryAsync_ValidRepo_ReturnsGitHubRepo(string input, int expectedMinimumStars)
     {
         // Arrange
         var uri = new Uri(input);
 
         // Act
-        var result = await _sut.GetRepoAsync(uri, CancellationToken.None);
+        var result = await _sut.GetRepositoryAsync(uri, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
@@ -119,35 +119,43 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [InlineData("http://example.com/foo/bar")]
     [InlineData("https://github.com/foo/bar")]
     [InlineData("https://api.github.com/search/repositories?q")]
-    public async void GetSearchResultsAsync_InvalidQueryUrl_Throws(string input)
+    public async void SearchRepositoriesAsync_InvalidQueryUrl_Throws(string input)
     {
         // Arrange
         var uri = new Uri(input);
 
         // Act
-        Func<Task> act = () => _sut.GetSearchResultsAsync(uri, CancellationToken.None);
+        try
+        {
+            await _sut.SearchRepositoriesAsync(uri, CancellationToken.None).ToArrayAsync();
+            Assert.Fail("Should have thrown");
+        }
+        catch (AggregateException ex)
+        {
+            // Assert
+            ex.InnerException.Should().BeOfType<HttpRequestException>();
+            return;
+        }
 
-        // Assert
-        await act.Should().ThrowAsync<HttpRequestException>();
+        Assert.Fail("Should have thrown an AggregateException");
     }
 
     [Theory]
     [InlineData("https://api.github.com/search/repositories?q=scoop-bucket+created:>2023-01-01")]
     [InlineData("https://api.github.com/search/repositories?q=scoop+bucket+created:>2023-01-01")]
-    public async void GetSearchResultsAsync_ValidQuery_ReturnsSearchResults(string input)
+    public async void SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string input)
     {
         // Arrange
         var uri = new Uri(input);
 
         // Act
-        var result = await _sut.GetSearchResultsAsync(uri, CancellationToken.None);
+        var result = await _sut.SearchRepositoriesAsync(uri, CancellationToken.None).ToArrayAsync();
 
         // Assert
         result.Should().NotBeNull();
-        result!.TotalCount.Should()
+        result.Length.Should()
             .BeGreaterThan(0, "because there should be at least 1 result")
             .And.BeLessThan(900, "because there should be less than 900 results. If it returns more than 900, the date condition should be updated");
-        result.Items.Should().NotBeEmpty();
     }
 
     [Theory]
