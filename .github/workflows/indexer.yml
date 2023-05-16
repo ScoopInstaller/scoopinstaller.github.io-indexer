@@ -14,21 +14,15 @@ jobs:
   main:
     name: Build and run indexer ⚙️️🚀🌐
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Staging' }}
+    concurrency: ci-${{ github.ref }}-${{ vars.AZURESEARCH__SERVICEURL }}-${{ vars.AZURESEARCH__INDEXNAME }}
+
+    env:
+      AZURESEARCH__SERVICEURL: ${{ vars.AZURESEARCH__SERVICEURL }}
+      AZURESEARCH__INDEXNAME: ${{ vars.AZURESEARCH__INDEXNAME }}
+      AZURESEARCH__ADMINAPIKEY: ${{ secrets.AZURESEARCH__ADMINAPIKEY }}
 
     steps:
-      - name: Set branch-based environment variables
-        uses: iamtheyammer/branch-env-vars@v1.2.1
-        with:
-          AZURESEARCH__SERVICEURL: |
-            main:${{ vars.APPSETTINGS_AZURESEARCHSERVICEURL }}
-            !default:${{ vars.APPSETTINGS_AZURESEARCHSERVICEURL_TESTS }}
-          AZURESEARCH__INDEXNAME: |
-            main:${{ vars.APPSETTINGS_AZURESEARCHINDEXNAME }}
-            !default:${{ vars.APPSETTINGS_AZURESEARCHINDEXNAME_TESTS }}
-          AZURESEARCH__ADMINAPIKEY: |
-            main:${{ secrets.APPSETTINGS_AZURESEARCHADMINAPIKEY }}
-            !default:${{ secrets.APPSETTINGS_AZURESEARCHADMINAPIKEY_TESTS }}
-
       - name: Checkout
         uses: actions/checkout@v3
 
