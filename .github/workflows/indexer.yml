@@ -8,9 +8,6 @@ env:
   OUTPUT_PATH: ${{ github.workspace }}/output
   APP_PATH: ${{ github.workspace }}/src/ScoopSearch.Indexer.Console/
   GitHub__Token: ${{ secrets.GITHUB_TOKEN }}
-  AzureSearch__ServiceUrl: ${{ vars.APPSETTINGS_AZURESEARCHSERVICEURL }}
-  AzureSearch__AdminApiKey: ${{ secrets.APPSETTINGS_AZURESEARCHADMINAPIKEY }}
-  AzureSearch__IndexName: ${{ vars.APPSETTINGS_AZURESEARCHINDEXNAME }}
   DOTNET_VERSION: '7.0.x'
 
 jobs:
@@ -19,6 +16,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set branch-based environment variables
+        uses: iamtheyammer/branch-env-vars@v1.2.1
+        with:
+          AzureSearch__ServiceUrl: |
+            main:${{ vars.APPSETTINGS_AZURESEARCHSERVICEURL }}
+            !default:${{ vars.APPSETTINGS_AZURESEARCHSERVICEURL_TESTS }}
+          AzureSearch__IndexName: |
+            main:${{ vars.APPSETTINGS_AZURESEARCHINDEXNAME }}
+            !default:${{ vars.APPSETTINGS_AZURESEARCHINDEXNAME_TESTS }}
+          AzureSearch__AdminApiKey: |
+            main:${{ secrets.APPSETTINGS_AZURESEARCHADMINAPIKEY }}
+            !default:${{ secrets.APPSETTINGS_AZURESEARCHADMINAPIKEY_TESTS }}
+
       - name: Checkout
         uses: actions/checkout@v3
 
