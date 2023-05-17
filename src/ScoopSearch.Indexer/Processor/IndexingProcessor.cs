@@ -90,7 +90,9 @@ internal class IndexingProcessor : IIndexingProcessor
                 string.Join(", ", duplicatedManifestsGroup.Select(_ => _.manifest.Metadata.Repository + "/" + _.manifest.Metadata.FilePath)),
                 originalManifest.Metadata.Repository + "/" + originalManifest.Metadata.FilePath);
 
-            prioritizedManifests.Skip(1).ForEach(_ => _.Metadata.SetDuplicateOf(originalManifest.Id));
+            prioritizedManifests.Skip(1)
+                .Where(_ => _.Metadata.OfficialRepositoryNumber != 1) // Never mark an official manifest as a duplicate
+                .ForEach(_ => _.Metadata.SetDuplicateOf(originalManifest.Id));
         }
 
         manifestsFromRepositories
