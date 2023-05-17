@@ -10,12 +10,10 @@ internal class GitHubClient : IGitHubClient
     private const int ResultsPerPage = 100;
 
     private readonly HttpClient _githubHttpClient;
-    private readonly HttpClient _githubHttpClientNoRedirect;
 
     public GitHubClient(IHttpClientFactory httpClientFactory)
     {
         _githubHttpClient = httpClientFactory.CreateClient(Constants.GitHubHttpClientName);
-        _githubHttpClientNoRedirect = httpClientFactory.CreateClient(Constants.GitHubHttpClientNoRedirectName);
     }
 
     public async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)
@@ -29,9 +27,9 @@ internal class GitHubClient : IGitHubClient
         }
     }
 
-    public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, bool followRedirects, CancellationToken cancellationToken)
+    public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        return (followRedirects ? _githubHttpClient : _githubHttpClientNoRedirect).SendAsync(request, cancellationToken);
+        return _githubHttpClient.SendAsync(request, cancellationToken);
     }
 
     public async Task<GitHubRepo?> GetRepositoryAsync(Uri uri, CancellationToken cancellationToken)

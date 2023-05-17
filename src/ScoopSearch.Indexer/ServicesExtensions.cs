@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Extensions;
 using ScoopSearch.Indexer.Git;
@@ -27,8 +26,7 @@ public static class ServicesExtensions
             .Configure<IConfiguration>((options, configuration) => configuration.GetRequiredSection(GitHubOptions.Key).Bind(options));
 
         // Services
-        @this.AddHttpClient(Constants.GitHubHttpClientName, true);
-        @this.AddHttpClient(Constants.GitHubHttpClientNoRedirectName, false);
+        @this.AddGitHubHttpClient(Constants.GitHubHttpClientName);
         @this.AddSingleton<IGitRepositoryProvider, GitRepositoryProvider>();
         @this.AddSingleton<IGitHubClient, GitHubClient>();
         @this.AddSingleton<ISearchClient, AzureSearchClient>();
