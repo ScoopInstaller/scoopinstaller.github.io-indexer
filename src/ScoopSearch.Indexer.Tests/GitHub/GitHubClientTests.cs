@@ -158,35 +158,18 @@ public class GitHubClientTests : IClassFixture<HostFixture>
             .And.BeLessThan(900, "because there should be less than 900 results. If it returns more than 900, the date condition should be updated");
     }
 
-    [Theory]
-    [CombinatorialData]
-    public async void SendAsync_NonExistentUrl_Throws(bool followRedirects)
+    [Fact]
+    public async void SendAsync_NonExistentUrl_Throws()
     {
         // Arrange
         var uri = new Uri("http://example.invalid/foo/bar");
         var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, uri);
 
         // Act
-        Func<Task> act = () => _sut.SendAsync(httpRequestMessage, followRedirects, CancellationToken.None);
+        Func<Task> act = () => _sut.SendAsync(httpRequestMessage, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>();
-    }
-
-    [Theory]
-    [InlineData("https://github.com/okibcn/Bucket.git")]
-    [InlineData("https://github.com/01walid/it-scoop.git")]
-    public async void SendAsync_DontFollowRedirection_Succeeds(string input)
-    {
-        // Arrange
-        var uri = new Uri(input);
-        var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, uri);
-
-        // Act
-        var result = await _sut.SendAsync(httpRequestMessage, false, CancellationToken.None);
-
-        // Assert
-        result.Should().BeRedirection();
     }
 
     [Theory]
@@ -199,7 +182,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
         var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, uri);
 
         // Act
-        var result = await _sut.SendAsync(httpRequestMessage, true, CancellationToken.None);
+        var result = await _sut.SendAsync(httpRequestMessage, CancellationToken.None);
 
         // Assert
         result.Should().BeSuccessful();

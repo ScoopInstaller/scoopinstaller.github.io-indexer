@@ -11,7 +11,7 @@ namespace ScoopSearch.Indexer.Extensions;
 
 internal static class ServiceCollectionExtensions
 {
-    public static IHttpClientBuilder AddHttpClient(this IServiceCollection services, string name, bool followAutoRedirect)
+    public static IHttpClientBuilder AddGitHubHttpClient(this IServiceCollection services, string name)
     {
         return services
             .AddHttpClient(name, (serviceProvider, client) =>
@@ -26,7 +26,6 @@ internal static class ServiceCollectionExtensions
                 var gitHubOptions = serviceProvider.GetRequiredService<IOptions<GitHubOptions>>();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
             })
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler() { AllowAutoRedirect = followAutoRedirect })
             .AddPolicyHandler((provider, _) => CreateRetryPolicy(provider, name));
     }
 

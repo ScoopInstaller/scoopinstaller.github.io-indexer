@@ -10,8 +10,6 @@ public class BucketsOptions
 
     public HashSet<Uri> IgnoredBuckets { get; set; } = new HashSet<Uri>();
 
-    public Uri IgnoredBucketsListUrl { get; set; } = null!;
-
     public HashSet<Uri> ManualBuckets { get; set; } = new HashSet<Uri>();
 
     public Uri ManualBucketsListUrl { get; set; } = null!;

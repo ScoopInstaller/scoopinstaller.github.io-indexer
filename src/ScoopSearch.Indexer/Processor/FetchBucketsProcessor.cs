@@ -31,15 +31,13 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
         _logger.LogInformation("Retrieving buckets from sources");
         var officialBucketsTask = RetrieveOfficialBucketsAsync(cancellationToken);
         var githubBucketsTask = SearchForBucketsOnGitHubAsync(cancellationToken);
-        var ignoredBucketsTask = RetrieveBucketsFromListAsync(_bucketOptions.IgnoredBucketsListUrl, false, cancellationToken);
-        var manualBucketsTask = RetrieveBucketsFromListAsync(_bucketOptions.ManualBucketsListUrl, true, cancellationToken);
+        var manualBucketsTask = RetrieveBucketsFromListAsync(_bucketOptions.ManualBucketsListUrl, cancellationToken);
 
-        await Task.WhenAll(officialBucketsTask, githubBucketsTask, ignoredBucketsTask, manualBucketsTask);
+        await Task.WhenAll(officialBucketsTask, githubBucketsTask, manualBucketsTask);
 
         _logger.LogInformation("Found {Count} official buckets ({Url})", officialBucketsTask.Result.Count(), _bucketOptions.OfficialBucketsListUrl);
         _logger.LogInformation("Found {Count} buckets on GitHub", githubBucketsTask.Result.Count);
         _logger.LogInformation("Found {Count} buckets to ignore (appsettings.json)", _bucketOptions.IgnoredBuckets.Count);
-        _logger.LogInformation("Found {Count} buckets to ignore from external list ({Url})", ignoredBucketsTask.Result.Count(), _bucketOptions.IgnoredBucketsListUrl);
         _logger.LogInformation("Found {Count} buckets to add (appsettings.json)", _bucketOptions.ManualBuckets.Count);
         _logger.LogInformation("Found {Count} buckets to add from external list ({Url})", manualBucketsTask.Result.Count(), _bucketOptions.ManualBucketsListUrl);
 
@@ -48,7 +46,6 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
             .Concat(_bucketOptions.ManualBuckets)
             .Concat(manualBucketsTask.Result)
             .Except(_bucketOptions.IgnoredBuckets)
-            .Except(ignoredBucketsTask.Result)
             .Where(_gitHubClient.IsValidRepositoryDomain)
             .DistinctBy(_ => _.AbsoluteUri.ToLowerInvariant())
             .ToHashSet();
@@ -74,14 +71,14 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
         return officialBuckets?.Select(_ => new Uri(_)).ToHashSet() ?? Enumerable.Empty<Uri>();
     }
 
-    private async Task<IEnumerable<Uri>> RetrieveBucketsFromListAsync(Uri bucketsList, bool followRedirects, CancellationToken cancellationToken)
+    private async Task<IEnumerable<Uri>> RetrieveBucketsFromListAsync(Uri bucketsList, CancellationToken cancellationToken)
     {
         ConcurrentBag<Uri> buckets = new();
 
         var tasks = new List<Task>();
         await foreach (var uri in GetBucketsFromList(bucketsList, cancellationToken))
         {
-            tasks.Add(GetTargetRepository(uri, followRedirects, cancellationToken)
+            tasks.Add(GetTargetRepository(uri, cancellationToken)
                 .ContinueWith(t => { if (t.Result != null) { buckets.Add(t.Result); } }, cancellationToken));
         }
 
@@ -114,11 +111,11 @@ internal class FetchBucketsProcessor : IFetchBucketsProcessor
         }
     }
 
-    private async Task<Uri?> GetTargetRepository(Uri uri, bool followRedirects, CancellationToken cancellationToken)
+    private async Task<Uri?> GetTargetRepository(Uri uri, CancellationToken cancellationToken)
     {
         // Validate uri (existing repository, follow redirections...)
         using var request = new HttpRequestMessage(HttpMethod.Head, uri);
-        using var response = await _gitHubClient.SendAsync(request, followRedirects, cancellationToken);
+        using var response = await _gitHubClient.SendAsync(request, cancellationToken);
 
         if (request.RequestUri != null)
         {
