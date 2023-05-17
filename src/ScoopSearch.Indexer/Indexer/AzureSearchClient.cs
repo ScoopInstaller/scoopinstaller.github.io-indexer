@@ -51,13 +51,29 @@ internal class AzureSearchClient : ISearchClient
         options.Select.Add(ManifestMetadata.FilePathField);
         options.Select.Add(ManifestMetadata.DuplicateOfField);
         options.OrderBy.Add(ManifestInfo.IdField);
-        options.Size = int.MaxValue; // Retrieve as many results as possible
+        options.IncludeTotalCount = true;
+        
+        // Batch retrieve manifests to overcome limitation of 100_000 documents per search
+        string? lastId = null;
+        bool hasResults;
+        options.Size = 100_000;
 
-        var searchResults = await _client.SearchAsync<ManifestInfo>("*", options, token);
-        await foreach(var searchResult in searchResults.Value.GetResultsAsync().WithCancellation(token))
+        do
         {
-            yield return searchResult.Document;
-        }
+            // Batch retrieve manifests using ranges
+            if (lastId != null)
+            {
+                options.Filter = $"Id gt '{lastId}'";
+            }
+
+            var searchResults = await _client.SearchAsync<ManifestInfo>("*", options, token);
+            hasResults = searchResults.Value.TotalCount > 0;
+            await foreach (var searchResult in searchResults.Value.GetResultsAsync().WithCancellation(token))
+            {
+                lastId = searchResult.Document.Id;
+                yield return searchResult.Document;
+            }
+        } while (hasResults);
     }
 
     public async Task<IEnumerable<Uri>> GetBucketsAsync(CancellationToken token)
