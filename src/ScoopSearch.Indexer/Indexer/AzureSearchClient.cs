@@ -3,7 +3,6 @@ using Azure;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using Microsoft.Extensions.Options;
-using MoreLinq;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Data;
 
@@ -52,7 +51,7 @@ internal class AzureSearchClient : ISearchClient
         options.Select.Add(ManifestMetadata.DuplicateOfField);
         options.OrderBy.Add(ManifestInfo.IdField);
         options.IncludeTotalCount = true;
-        
+
         // Batch retrieve manifests to overcome limitation of 100_000 documents per search
         string? lastId = null;
         bool hasResults;
@@ -89,11 +88,11 @@ internal class AzureSearchClient : ISearchClient
 
     public async Task DeleteManifestsAsync(IEnumerable<ManifestInfo> manifests, CancellationToken token)
     {
-        await Parallel.ForEachAsync(manifests.Batch(BatchSize), token, async (batch, _) => { await _client.DeleteDocumentsAsync(batch, null, _); });
+        await Parallel.ForEachAsync(manifests.Chunk(BatchSize), token, async (batch, _) => { await _client.DeleteDocumentsAsync(batch, null, _); });
     }
 
     public async Task UpsertManifestsAsync(IEnumerable<ManifestInfo> manifests, CancellationToken token)
     {
-        await Parallel.ForEachAsync(manifests.Batch(BatchSize), token, async (batch, _) => { await _client.UploadDocumentsAsync(batch, null, _); });
+        await Parallel.ForEachAsync(manifests.Chunk(BatchSize), token, async (batch, _) => { await _client.UploadDocumentsAsync(batch, null, _); });
     }
 }

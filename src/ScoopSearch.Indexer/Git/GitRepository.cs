@@ -41,7 +41,7 @@ internal class GitRepository : IGitRepository, IDisposable
         }
     }
 
-    public IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>> GetCommitsCache(Predicate<string> filter, CancellationToken cancellationToken)
+    public async Task<IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>> GetCommitsCacheAsync(Predicate<string> filter, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Computing commits cache for repository '{WorkingDirectory}'", _repository.Info.WorkingDirectory);
 
@@ -59,7 +59,6 @@ internal class GitRepository : IGitRepository, IDisposable
             }
         };
 
-        string? currentLine;
         string? sha = default;
         DateTimeOffset commitDate = default;
         List<string> files = new List<string>();
@@ -70,7 +69,7 @@ internal class GitRepository : IGitRepository, IDisposable
         {
             foreach (var file in files)
             {
-                if (!commitsCache!.TryGetValue(file, out var list))
+                if (!commitsCache.TryGetValue(file, out var list))
                 {
                     list = new List<CommitInfo>();
                     commitsCache.Add(file, list);
@@ -82,7 +81,7 @@ internal class GitRepository : IGitRepository, IDisposable
             files.Clear();
         }
 
-        while ((currentLine = process.StandardOutput.ReadLine()) != null && !cancellationToken.IsCancellationRequested)
+        while (await process.StandardOutput.ReadLineAsync() is { } currentLine && !cancellationToken.IsCancellationRequested)
         {
             var parts = currentLine.Split(':');
             switch (parts[0])
@@ -107,7 +106,7 @@ internal class GitRepository : IGitRepository, IDisposable
 
         AddFilesToCache();
 
-        process.WaitForExit();
+        await process.WaitForExitAsync(cancellationToken);
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException($"git returned non-zero exit code ({process.ExitCode})");
@@ -130,8 +129,8 @@ internal class GitRepository : IGitRepository, IDisposable
             .Select(_ => _.Path);
     }
 
-    public string ReadContent(string filePath)
+    public Task<string> ReadContentAsync(string filePath, CancellationToken cancellationToken)
     {
-        return File.ReadAllText(Path.Combine(_repository.Info.WorkingDirectory, filePath));
+        return File.ReadAllTextAsync(Path.Combine(_repository.Info.WorkingDirectory, filePath), cancellationToken);
     }
 }
