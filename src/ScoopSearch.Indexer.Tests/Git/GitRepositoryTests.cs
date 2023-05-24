@@ -128,7 +128,7 @@ public class GitRepositoryTests : IDisposable
         // Assert
         var taskResult = await result.Should().NotThrowAsync();
         taskResult.Subject.Should().HaveCount(expectedFiles)
-            .And.Subject.SelectMany(_ => _.Value).DistinctBy(_ => _.Sha).Should().HaveCount(expectedCommits);
+            .And.Subject.SelectMany(kv => kv.Value).DistinctBy(commitInfo => commitInfo.Sha).Should().HaveCount(expectedCommits);
     }
 
     public static IEnumerable<object[]> GetCommitsCacheTestCases()
@@ -136,7 +136,7 @@ public class GitRepositoryTests : IDisposable
         // repository, filter, expected files, expected commits
         yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(_ => true), 14, 39 };
         yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(_ => false), 0, 0 };
-        yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(_ => _.EndsWith(".json")), 11, 30 };
+        yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(filePath => filePath.EndsWith(".json")), 11, 30 };
     }
 
     [Theory]

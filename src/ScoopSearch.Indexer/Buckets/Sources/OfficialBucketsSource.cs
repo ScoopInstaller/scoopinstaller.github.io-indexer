@@ -35,7 +35,7 @@ internal class OfficialBucketsSource : IOfficialBucketsSource
             yield break;
         }
 
-        _logger.LogInformation("Retrieving official buckets from '{Uri}'", _bucketOptions.OfficialBucketsListUrl);
+        _logger.LogInformation("Retrieving official buckets from {Uri}", _bucketOptions.OfficialBucketsListUrl);
 
         await foreach (var uri in GetBucketsFromJsonAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken))
         {
@@ -53,7 +53,7 @@ internal class OfficialBucketsSource : IOfficialBucketsSource
         var officialBuckets = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(contentJson, cancellationToken: cancellationToken);
         if (officialBuckets is null)
         {
-            _logger.LogWarning("Unable to parse buckets list from '{Uri}'", uri);
+            _logger.LogWarning("Unable to parse buckets list from {Uri}", uri);
             yield break;
         }
 

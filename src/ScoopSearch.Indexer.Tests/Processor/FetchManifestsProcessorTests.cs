@@ -2,15 +2,17 @@ using System.Text.Json;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Extensions;
+using LibGit2Sharp;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Moq;
+using ScoopSearch.Indexer.Buckets;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Manifest;
 using ScoopSearch.Indexer.Processor;
 using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace ScoopSearch.Indexer.Tests.Processor;
 
@@ -18,6 +20,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
 {
     private readonly HostFixture _hostFixture;
     private readonly XUnitLogger<FetchManifestsProcessor> _logger;
+    private readonly XUnitLogger<GitRepository> _gitRepositoryLogger;
 
     public FetchManifestsProcessorTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
     {
@@ -25,48 +28,57 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         _hostFixture.Configure(testOutputHelper);
 
         _logger = new XUnitLogger<FetchManifestsProcessor>(testOutputHelper);
+        _gitRepositoryLogger = new XUnitLogger<GitRepository>(testOutputHelper);
     }
 
-    [Theory]
-    [CombinatorialData]
-    public async void FetchManifestsAsync_ValidRepository_ReturnsManifestsWithStarsAndKind([CombinatorialValues(123, 321)] int stars, bool officialRepository)
+    [Fact]
+    public async void FetchManifestsAsync_ValidRepository_ReturnsManifests()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
-        var bucketInfo = new BucketInfo(uri, stars, officialRepository);
+        var bucket = new Bucket(uri, 0);
         var cancellationToken = CancellationToken.None;
         var sut = CreateSut();
 
         // Act
-        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+        var result = await sut.FetchManifestsAsync(bucket, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
-        _logger.Should().Log(LogLevel.Information, $"Found 5 manifests for {uri}");
-        result
-            .Should().HaveCount(5)
-            .And.AllSatisfy(_ =>
-            {
-                _.Metadata.RepositoryStars.Should().Be(stars);
-                _.Metadata.OfficialRepository.Should().Be(officialRepository);
-            });
+        _logger.Should().Log(LogLevel.Debug, $"Generating manifests list for {uri}");
+        result.Should().HaveCount(5);
     }
 
-    [Theory]
-    [InlineData(Constants.NonExistentTestRepositoryUri)]
-    [InlineData(Constants.EmptyTestRepositoryUri)]
-    public async void FetchManifestsAsync_InvalidRepository_ReturnsEmptyResults(string repository)
+    [Fact]
+    public async void FetchManifestsAsync_EmptyRepository_ReturnsEmptyResults()
     {
         // Arrange
-        var uri = new Uri(repository);
-        var bucketInfo = new BucketInfo(uri, 0, false);
+        var uri = new Uri(Constants.EmptyTestRepositoryUri);
+        var bucket = new Bucket(uri, 0);
         var cancellationToken = CancellationToken.None;
         var sut = CreateSut();
 
         // Act
-        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+        var result = await sut.FetchManifestsAsync(bucket, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
-        _logger.Should().Log(LogLevel.Information, $"Found 0 manifests for {uri}");
+        _gitRepositoryLogger.Should().Log(LogLevel.Error, message => message.StartsWith("No valid branch found in"));
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async void FetchManifestsAsync_NonExistentRepository_ReturnsEmptyResults()
+    {
+        // Arrange
+        var uri = new Uri(Constants.NonExistentTestRepositoryUri);
+        var bucket = new Bucket(uri, 0);
+        var cancellationToken = CancellationToken.None;
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.FetchManifestsAsync(bucket, cancellationToken).ToArrayAsync(cancellationToken);
+
+        // Assert
+        _gitRepositoryLogger.Should().Log<LibGit2SharpException>(LogLevel.Error, message => message.StartsWith("Unable to clone repository"));
         result.Should().BeEmpty();
     }
 
@@ -75,14 +87,14 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
-        var bucketInfo = new BucketInfo(uri, 0, false);
+        var bucket = new Bucket(uri, 0);
         var cancellationToken = new CancellationToken();
-        var sut = CreateSut(_ => _
+        var sut = CreateSut(mockConfig => mockConfig
             .Setup(_ => _.Download(uri, cancellationToken))
             .Returns((IGitRepository?)null));
 
         // Act
-        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+        var result = await sut.FetchManifestsAsync(bucket, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
         result.Should().BeEmpty();
@@ -93,7 +105,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
-        var bucketInfo = new BucketInfo(uri, 0, false);
+        var bucket = new Bucket(uri, 0);
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
@@ -101,12 +113,12 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
             new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
 
-        var sut = CreateSut(_ => _
+        var sut = CreateSut(mockConfig => mockConfig
             .Setup(_ => _.Download(uri, cancellationToken))
             .Returns(gitRepositoryMock.Object));
 
         // Act
-        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+        var result = await sut.FetchManifestsAsync(bucket, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
         result.Should().HaveCount(1);
@@ -117,7 +129,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
             manifestInfo.Metadata.Sha.Should().Be("sha_manifest2.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
-        _logger.Should().Log(LogLevel.Warning, $"Unable to find a commit for manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
+        _logger.Should().Log(LogLevel.Warning, $"Unable to find a commit for manifest manifest1.json from {Constants.TestRepositoryUri}");
     }
 
     [Fact]
@@ -125,7 +137,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
-        var bucketInfo = new BucketInfo(uri, 0, false);
+        var bucket = new Bucket(uri, 0);
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
@@ -133,12 +145,12 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
             new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
 
-        var sut = CreateSut(_ => _
+        var sut = CreateSut(mockConfig => mockConfig
             .Setup(_ => _.Download(uri, cancellationToken))
             .Returns(gitRepositoryMock.Object));
 
         // Act
-        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+        var result = await sut.FetchManifestsAsync(bucket, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
         result.Should().HaveCount(1);
@@ -149,7 +161,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
             manifestInfo.Metadata.Sha.Should().Be("sha_manifest2.json");
             manifestInfo.Metadata.Committed.Should().BeCloseTo(DateTimeOffset.Now, 1.Seconds());
         }
-        _logger.Should().Log<JsonException>(LogLevel.Error, $"Unable to parse manifest 'manifest1.json' from '{Constants.TestRepositoryUri}'");
+        _logger.Should().Log<JsonException>(LogLevel.Error, $"Unable to parse manifest manifest1.json from {Constants.TestRepositoryUri}");
     }
 
     [Fact]
@@ -157,19 +169,19 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
-        var bucketInfo = new BucketInfo(uri, 0, false);
+        var bucket = new Bucket(uri, 0);
         var cancellationToken = new CancellationToken();
         var gitRepositoryMock = CreateGitRepositoryMock(new[]
         {
             new GitRepositoryMockEntry("bucket/manifest1.json", "{}"),
             new GitRepositoryMockEntry("manifest2.json", "{}"),
         }, cancellationToken);
-        var sut = CreateSut(_ => _
+        var sut = CreateSut(mockConfig => mockConfig
             .Setup(_ => _.Download(uri, cancellationToken))
             .Returns(gitRepositoryMock.Object));
 
         // Act
-        var result = await sut.FetchManifestsAsync(bucketInfo, cancellationToken);
+        var result = await sut.FetchManifestsAsync(bucket, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
         result.Should().HaveCount(1);
@@ -189,20 +201,17 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         var gitRepositoryMock = new Mock<IGitRepository>();
         gitRepositoryMock
             .Setup(_ => _.GetFilesFromIndex())
-            .Returns(entries.Select(_ => _.Path));
+            .Returns(entries.Select(entry => entry.Path));
         gitRepositoryMock
-            .Setup(_ => _.GetCommitsCache(It.IsAny<Predicate<string>>(), cancellationToken))
-            .Returns(entries.Where(_ => _.Content != null).ToDictionary(
-                k => k.Path,
-                v => (IReadOnlyCollection<CommitInfo>)new[]
-                {
-                    new CommitInfo(DateTimeOffset.Now, $"sha_{v.Path}")
-                }));
-        foreach (var entry in entries.Where(_ => _.Content != null))
+            .Setup(_ => _.GetCommitsCacheAsync(It.IsAny<Predicate<string>>(), cancellationToken))
+            .ReturnsAsync(entries.Where(entry => entry.Content != null).ToDictionary(
+                kv => kv.Path,
+                kv => (IReadOnlyCollection<CommitInfo>)new[] { new CommitInfo(DateTimeOffset.Now, $"sha_{kv.Path}") }));
+        foreach (var entry in entries.Where(entry => entry.Content != null))
         {
             gitRepositoryMock
-                .Setup(_ => _.ReadContent(It.Is<string>(_ => _ == entry.Path)))
-                .Returns(entry.Content!);
+                .Setup(_ => _.ReadContentAsync(It.Is<string>(filePath => filePath == entry.Path), cancellationToken))
+                .ReturnsAsync(entry.Content!);
         }
 
         return gitRepositoryMock;
@@ -211,7 +220,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     private FetchManifestsProcessor CreateSut()
     {
         return new FetchManifestsProcessor(
-            _hostFixture.Instance.Services.GetRequiredService<IGitRepositoryProvider>(),
+            new GitRepositoryProvider(_gitRepositoryLogger),
             _hostFixture.Instance.Services.GetRequiredService<IKeyGenerator>(),
             _logger);
     }
@@ -224,7 +233,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         var keyGeneratorMock = new Mock<IKeyGenerator>();
         keyGeneratorMock
             .Setup(_ => _.Generate(It.IsAny<ManifestMetadata>()))
-            .Returns<ManifestMetadata>(_ => $"KEY_{_.FilePath}");
+            .Returns<ManifestMetadata>(manifestMetadata => $"KEY_{manifestMetadata.FilePath}");
 
         return new FetchManifestsProcessor(
             gitRepositoryProviderMock.Object,

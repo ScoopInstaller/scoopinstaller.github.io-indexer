@@ -23,7 +23,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
     public IAsyncEnumerable<ManifestInfo> FetchManifestsAsync(Bucket bucket, CancellationToken cancellationToken)
     {
         // Clone/Update bucket repository and retrieve manifests
-        _logger.LogDebug("Generating manifests list for '{Bucket}'", bucket.Uri);
+        _logger.LogDebug("Generating manifests list for {Bucket}", bucket.Uri);
 
         return GetManifestsFromRepositoryAsync(bucket.Uri, cancellationToken);
     }
@@ -36,7 +36,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
             yield break;
         }
 
-        _logger.LogDebug("Generating manifest infos from repository '{Repository}'", bucketUri);
+        _logger.LogDebug("Generating manifest infos from repository {Repository}", bucketUri);
 
         var files = repository.GetFilesFromIndex().ToArray();
         var manifestsSubPath = files.Any(_ => _.StartsWith("bucket/")) ? "bucket" : null;
@@ -65,7 +65,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
             }
             else
             {
-                _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", filePath, bucketUri);
+                _logger.LogWarning("Unable to find a commit for manifest {Manifest} from {Repository}", filePath, bucketUri);
             }
         }
 
@@ -89,7 +89,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to parse manifest '{Manifest}' from '{Repository}'", metadata.FilePath, metadata.Repository);
+            _logger.LogError(ex, "Unable to parse manifest {Manifest} from {Repository}", metadata.FilePath, metadata.Repository);
         }
 
         return null;

@@ -22,7 +22,7 @@ internal class GitRepository : IGitRepository, IDisposable
 
     public void Delete()
     {
-        _logger.LogDebug("Deleting repository '{WorkingDirectory}'", _repository.Info.WorkingDirectory);
+        _logger.LogDebug("Deleting repository {WorkingDirectory}", _repository.Info.WorkingDirectory);
 
         var workingDirectory = _repository.Info.WorkingDirectory;
         _repository.Dispose();
@@ -43,7 +43,7 @@ internal class GitRepository : IGitRepository, IDisposable
 
     public async Task<IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>> GetCommitsCacheAsync(Predicate<string> filter, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Computing commits cache for repository '{WorkingDirectory}'", _repository.Info.WorkingDirectory);
+        _logger.LogDebug("Computing commits cache for repository {WorkingDirectory}", _repository.Info.WorkingDirectory);
 
         var commitsCache = new Dictionary<string, List<CommitInfo>>();
 
@@ -112,7 +112,7 @@ internal class GitRepository : IGitRepository, IDisposable
             throw new InvalidOperationException($"git returned non-zero exit code ({process.ExitCode})");
         }
 
-        _logger.LogDebug("Cache computed for repository '{WorkingDirectory}': {Count} files", _repository.Info.WorkingDirectory, commitsCache.Count);
+        _logger.LogDebug("Cache computed for repository {WorkingDirectory}: {Count} files", _repository.Info.WorkingDirectory, commitsCache.Count);
 
         return new ReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>(commitsCache.ToDictionary(_ => _.Key, _ => (IReadOnlyCollection<CommitInfo>)_.Value));
     }

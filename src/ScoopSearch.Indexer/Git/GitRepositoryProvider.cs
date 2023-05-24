@@ -37,7 +37,7 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Unable to pull repository '{Uri}' to '{RepositoryDirectory}'", uri, repositoryDirectory);
+                    _logger.LogWarning(ex, "Unable to pull repository {Uri} to {RepositoryDirectory}", uri, repositoryDirectory);
                     DeleteRepository(repositoryDirectory);
                     CloneRepository(uri, repositoryDirectory, cancellationToken);
                 }
@@ -51,7 +51,7 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
             {
                 if (repository.Head.Tip == null)
                 {
-                    _logger.LogError("No valid branch found in '{RepositoryDirectory}'", repositoryDirectory);
+                    _logger.LogError("No valid branch found in {RepositoryDirectory}", repositoryDirectory);
                     return null;
                 }
             }
@@ -60,7 +60,7 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to clone repository '{Uri}' to '{RepositoryDirectory}'", uri, repositoryDirectory);
+            _logger.LogError(ex, "Unable to clone repository {Uri} to {RepositoryDirectory}", uri, repositoryDirectory);
             DeleteRepository(repositoryDirectory);
             return null;
         }
@@ -77,7 +77,7 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
 
     private void PullRepository(string repositoryDirectory, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Pulling repository '{RepositoryDirectory}'", repositoryDirectory);
+        _logger.LogDebug("Pulling repository {RepositoryDirectory}", repositoryDirectory);
 
         using var repository = new Repository(repositoryDirectory);
 
@@ -102,7 +102,7 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
 
     private void CloneRepository(Uri uri, string repositoryDirectory, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Cloning repository '{Uri}' in '{RepositoryDirectory}'", uri, repositoryDirectory);
+        _logger.LogDebug("Cloning repository {Uri} in {RepositoryDirectory}", uri, repositoryDirectory);
 
         var cloneOptions = CreateOptions<CloneOptions>(cancellationToken);
         cloneOptions.RecurseSubmodules = false;

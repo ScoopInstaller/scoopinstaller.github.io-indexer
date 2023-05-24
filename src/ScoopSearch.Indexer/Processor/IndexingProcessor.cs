@@ -85,7 +85,7 @@ internal class IndexingProcessor : IIndexingProcessor
                 .ToArray();
             var originalManifest = prioritizedManifests.First();
 
-            _logger.LogDebug("Duplicated manifests with hash '{Hash}' found in {Manifests}. Choosing {Manifest} as the original one",
+            _logger.LogDebug("Duplicated manifests with hash {Hash} found in {Manifests}. Choosing {Manifest} as the original one",
                 duplicatedManifestsGroup.Key,
                 string.Join(", ", duplicatedManifestsGroup.Select(_ => _.manifest.Metadata.Repository + "/" + _.manifest.Metadata.FilePath)),
                 originalManifest.Metadata.Repository + "/" + originalManifest.Metadata.FilePath);

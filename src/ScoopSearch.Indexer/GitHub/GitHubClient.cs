@@ -87,7 +87,7 @@ internal class GitHubClient : IGitHubClient
                 break;
             }
 
-            _logger.LogDebug("Found {Count} repositories for query '{Query}'", results.Items.Length, searchReposUri);
+            _logger.LogDebug("Found {Count} repositories for query {Query}", results.Items.Length, searchReposUri);
             foreach (var gitHubRepo in results.Items)
             {
                 yield return gitHubRepo;
