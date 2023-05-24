@@ -89,45 +89,46 @@ public class GitRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void ReadContent_NonExistentEntry_Throws()
+    public async void ReadContentAsync_NonExistentEntry_Throws()
     {
         // Arrange
         var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
 
         // Act
-        Action act = () => repository.ReadContent("foo");
+        var result = async () => await repository.ReadContentAsync("foo", CancellationToken.None);
 
         // Assert
-        act.Should().Throw<FileNotFoundException>();
+        await result.Should().ThrowAsync<FileNotFoundException>();
     }
 
     [Fact]
-    public void ReadContent_ExistentEntry_ReturnsContent()
+    public async void ReadContentAsync_ExistentEntry_ReturnsContent()
     {
         // Arrange
         var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
 
         // Act
-        var result = repository.ReadContent("kaxaml.json");
+        var result = async () => await repository.ReadContentAsync("kaxaml.json", CancellationToken.None);
 
         // Assert
-        result.Should().NotBeNull();
-        JsonSerializer.Deserialize<object?>(result).Should().NotBeNull();
+        var taskResult = await result.Should().NotThrowAsync();
+        JsonSerializer.Deserialize<object?>(taskResult.Subject).Should().NotBeNull();
     }
 
     [Theory]
     [MemberData(nameof(GetCommitsCacheTestCases))]
-    public void GetCommitsCache_ReturnsExpectedFilesAndCommits(string repositoryUri, Predicate<string> filter, int expectedFiles, int expectedCommits)
+    public async void GetCommitsCacheAsync_ReturnsExpectedFilesAndCommits(string repositoryUri, Predicate<string> filter, int expectedFiles, int expectedCommits)
     {
         // Arrange
         var repository = _provider.Download(new Uri(repositoryUri), CancellationToken.None)!;
 
         // Act
-        var result = repository.GetCommitsCache(filter, CancellationToken.None);
+        var result = async () => await repository.GetCommitsCacheAsync(filter, CancellationToken.None);
 
         // Assert
-        result.Should().HaveCount(expectedFiles);
-        result.SelectMany(_ => _.Value).DistinctBy(_ => _.Sha).Should().HaveCount(expectedCommits);
+        var taskResult = await result.Should().NotThrowAsync();
+        taskResult.Subject.Should().HaveCount(expectedFiles)
+            .And.Subject.SelectMany(_ => _.Value).DistinctBy(_ => _.Sha).Should().HaveCount(expectedCommits);
     }
 
     public static IEnumerable<object[]> GetCommitsCacheTestCases()
@@ -142,18 +143,17 @@ public class GitRepositoryTests : IDisposable
     [InlineData(Constants.TestRepositoryUri, 1, 5)]
     [InlineData("https://github.com/niheaven/scoop-sysinternals", 1, 70)]
     [InlineData("https://github.com/ScoopInstaller/Extras", 10, 1_900)]
-    public void GetCommitsCache_BuildCache_Succeeds(string repositoryUri, double maxSeconds, int minimalManifestsCount)
+    public async void GetCommitsCacheAsync_BuildCache_Succeeds(string repositoryUri, double maxSeconds, int minimalManifestsCount)
     {
         // Arrange
         var repository = _provider.Download(new Uri(repositoryUri), CancellationToken.None)!;
         bool IsManifestFile(string filePath) => Path.GetExtension(filePath).Equals(".json", StringComparison.OrdinalIgnoreCase);
 
         // Act
-        IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>? result = null;
-        Action act = () => result = repository.GetCommitsCache(IsManifestFile, CancellationToken.None);
+        var result = async () => await repository.GetCommitsCacheAsync(IsManifestFile, CancellationToken.None);
 
         // Assert
-        act.ExecutionTime().Should().BeLessThan(maxSeconds.Seconds());
-        result.Should().HaveCountGreaterThan(minimalManifestsCount);
+        var taskResult = await result.Should().CompleteWithinAsync(maxSeconds.Seconds());
+        taskResult.Subject.Should().HaveCountGreaterThan(minimalManifestsCount);
     }
 }

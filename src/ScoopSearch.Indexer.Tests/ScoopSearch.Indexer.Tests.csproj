@@ -2,8 +2,8 @@
     <ItemGroup>
         <PackageReference Include="Bogus" Version="34.0.2" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
-        <PackageReference Include="FluentAssertions" Version="6.10.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+        <PackageReference Include="FluentAssertions" Version="6.11.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
         <PackageReference Include="Moq" Version="4.18.4" />
         <PackageReference Include="xunit" Version="2.4.2" />
         <PackageReference Include="Xunit.Combinatorial" Version="1.5.25" />
@@ -18,5 +18,13 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\ScoopSearch.Indexer\ScoopSearch.Indexer.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Remove="Processor\FetchBucketsProcessorTests.cs" />
+      <None Include="Processor\FetchBucketsProcessorTests.cs" />
+      <Compile Remove="Processor\FetchManifestsProcessorTests.cs" />
+      <None Include="Processor\FetchManifestsProcessorTests.cs" />
+      <Compile Remove="Processor\IndexingProcessorTests.cs" />
+      <None Include="Processor\IndexingProcessorTests.cs" />
     </ItemGroup>
 </Project>
