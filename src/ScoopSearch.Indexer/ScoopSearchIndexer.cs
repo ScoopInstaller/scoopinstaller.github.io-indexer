@@ -51,13 +51,14 @@ internal class ScoopSearchIndexer : IScoopSearchIndexer
             .GetBucketsAsync(cancellationToken)
             .ToArrayAsync(cancellationToken);
 
+        var ignoredBuckets = _bucketsOptions.IgnoredBuckets?.Select(uri => uri.AbsoluteUri.ToLowerInvariant()).ToHashSet() ?? new HashSet<string>();
         var buckets = _bucketsProviders
             .Where(bucketSource => bucketSource is not IOfficialBucketsSource)
             .Select(provider => provider.GetBucketsAsync(cancellationToken))
             .Prepend(officialBuckets.ToAsyncEnumerable())
             .Merge()
-            .Distinct(bucket => bucket.Uri)
-            .Where(bucket => _bucketsOptions.IgnoredBuckets is null || !_bucketsOptions.IgnoredBuckets.Contains(bucket.Uri));
+            .Distinct(bucket => bucket.Uri.AbsoluteUri.ToLowerInvariant())
+            .Where(bucket => ignoredBuckets.Contains(bucket.Uri.AbsoluteUri.ToLowerInvariant()) == false);
 
         var officialBucketsHashSet = officialBuckets.Select(bucket => bucket.Uri).ToHashSet();
         var allManifests = new ConcurrentBag<ManifestInfo>();

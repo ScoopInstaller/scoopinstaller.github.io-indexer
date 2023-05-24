@@ -4,7 +4,7 @@ public class Bucket
 {
     public Bucket(Uri uri, int stars)
     {
-        Uri = new Uri(uri.AbsoluteUri.ToLowerInvariant());
+        Uri = uri;
         Stars = stars;
     }
 
