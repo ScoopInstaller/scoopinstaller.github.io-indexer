@@ -63,6 +63,21 @@ public class GitHubClientTests : IClassFixture<HostFixture>
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async void GetRepositoryAsync_RedirectedRepo_ReturnsNull()
+    {
+        // Arrange
+        var uri = new Uri("https://github.com/MCOfficer/scoop-nirsoft");
+        var cancellationToken = new CancellationToken();
+
+        // Act
+        var result = await _sut.GetRepositoryAsync(uri, cancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.HtmlUri.Should().Be("https://github.com/ScoopInstaller/Nirsoft");
+    }
+
     [Theory]
     [InlineData("https://github.com/ScoopInstaller/Main", 1000)]
     [InlineData("https://github.com/ScoopInstaller/Extras", 1500)]
