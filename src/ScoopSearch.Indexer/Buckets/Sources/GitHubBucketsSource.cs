@@ -1,7 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ScoopSearch.Indexer.Buckets.Providers;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.GitHub;
 
@@ -16,7 +15,7 @@ internal class GitHubBucketsSource : IBucketsSource
     public GitHubBucketsSource(
         IGitHubClient gitHubClient,
         IOptions<GitHubOptions> gitHubOptions,
-        ILogger<GitHubBucketsProvider> logger)
+        ILogger<GitHubBucketsSource> logger)
     {
         _gitHubClient = gitHubClient;
         _logger = logger;

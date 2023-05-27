@@ -19,7 +19,7 @@ internal class OfficialBucketsSource : IOfficialBucketsSource
         IHttpClientFactory httpClientFactory,
         IEnumerable<IBucketsProvider> bucketsProviders,
         IOptions<BucketsOptions> bucketOptions,
-        ILogger<GitHubBucketsProvider> logger)
+        ILogger<OfficialBucketsSource> logger)
     {
         _httpClientFactory = httpClientFactory;
         _bucketsProviders = bucketsProviders;

@@ -1,5 +1,6 @@
 using Bogus;
 using ScoopSearch.Indexer.Data;
+using ScoopSearch.Indexer.GitHub;
 
 namespace ScoopSearch.Indexer.Tests.Helpers;
 
@@ -41,5 +42,25 @@ public static class Faker
             .RuleFor(_ => _.DuplicateOf, f => null);
 
         return faker;
+    }
+
+    public static Faker<GitHubRepo> CreateGitHubRepo()
+    {
+        var faker = new Faker<GitHubRepo>()
+            .StrictMode(true)
+            .RuleFor(_ => _.HtmlUri, f => new Uri(f.Internet.Url()))
+            .RuleFor(_ => _.Stars, f => f.Random.Int(0, 1000));
+
+        return faker;
+    }
+
+    public static string CreateUrl()
+    {
+        return new Bogus.Faker().Internet.UrlWithPath();
+    }
+
+    public static Uri CreateUri()
+    {
+        return new Uri(Faker.CreateUrl());
     }
 }

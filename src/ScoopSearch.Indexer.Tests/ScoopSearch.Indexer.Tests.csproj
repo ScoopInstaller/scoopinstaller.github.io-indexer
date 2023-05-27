@@ -22,9 +22,5 @@
     <ItemGroup>
       <Compile Remove="Processor\FetchBucketsProcessorTests.cs" />
       <None Include="Processor\FetchBucketsProcessorTests.cs" />
-      <Compile Remove="Processor\FetchManifestsProcessorTests.cs" />
-      <None Include="Processor\FetchManifestsProcessorTests.cs" />
-      <Compile Remove="Processor\IndexingProcessorTests.cs" />
-      <None Include="Processor\IndexingProcessorTests.cs" />
     </ItemGroup>
 </Project>
