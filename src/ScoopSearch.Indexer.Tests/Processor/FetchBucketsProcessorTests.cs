@@ -32,7 +32,7 @@ public class FetchBucketsProcessorTests : IClassFixture<HostFixture>
     public async void FetchBucketsAsync_ReturnsBuckets_Succeeds()
     {
         // Arrange
-        var cancellationToken = CancellationToken.None;
+        var cancellationToken = new CancellationToken();
         var expectedOfficialBucketsCount = 10;
         var expectedAtLeastBucketsCount = 1400;
 

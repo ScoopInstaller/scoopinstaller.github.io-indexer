@@ -37,7 +37,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
         var bucket = new Bucket(uri, 0);
-        var cancellationToken = CancellationToken.None;
+        var cancellationToken = new CancellationToken();
         var sut = CreateSut();
 
         // Act
@@ -54,7 +54,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         // Arrange
         var uri = new Uri(Constants.EmptyTestRepositoryUri);
         var bucket = new Bucket(uri, 0);
-        var cancellationToken = CancellationToken.None;
+        var cancellationToken = new CancellationToken();
         var sut = CreateSut();
 
         // Act
@@ -71,7 +71,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
         // Arrange
         var uri = new Uri(Constants.NonExistentTestRepositoryUri);
         var bucket = new Bucket(uri, 0);
-        var cancellationToken = CancellationToken.None;
+        var cancellationToken = new CancellationToken();
         var sut = CreateSut();
 
         // Act

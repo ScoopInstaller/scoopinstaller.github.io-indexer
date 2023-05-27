@@ -24,9 +24,10 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(input);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = () => _sut.GetRepositoryAsync(uri, CancellationToken.None);
+        var result = () => _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
         var taskResult = await result.Should().NotThrowAsync();
@@ -39,9 +40,10 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(input);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = () => _sut.GetRepositoryAsync(uri, CancellationToken.None);
+        var result = () => _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
         await result.Should().ThrowAsync<HttpRequestException>();
@@ -52,9 +54,10 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(Constants.NonExistentTestRepositoryUri);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = await _sut.GetRepositoryAsync(uri, CancellationToken.None);
+        var result = await _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
         result.Should().BeNull();
@@ -67,9 +70,10 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(input);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = await _sut.GetRepositoryAsync(uri, CancellationToken.None);
+        var result = await _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -84,9 +88,10 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     public async void SearchRepositoriesAsync_InvalidQueryUrl_Throws(string[] input)
     {
         // Arrange + Act
+        var cancellationToken = new CancellationToken();
         try
         {
-            await _sut.SearchRepositoriesAsync(input, CancellationToken.None).ToArrayAsync();
+            await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
             Assert.Fail("Should have thrown");
         }
         catch (AggregateException ex)
@@ -105,7 +110,8 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     public async void SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string[] input)
     {
         // Arrange + Act
-        var result = await _sut.SearchRepositoriesAsync(input, CancellationToken.None).ToArrayAsync();
+        var cancellationToken = new CancellationToken();
+        var result = await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
         result.Should().NotBeNull();

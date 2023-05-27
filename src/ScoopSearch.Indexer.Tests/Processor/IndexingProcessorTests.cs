@@ -56,7 +56,7 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         ManifestInfo[] expectedManifestsToRemove)
     {
         // Arrange
-        var cancellationToken = CancellationToken.None;
+        var cancellationToken = new CancellationToken();
         _searchClientMock
             .Setup(_ => _.GetAllManifestsAsync(cancellationToken))
             .Returns(manifestsInIndex.ToAsyncEnumerable())

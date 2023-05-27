@@ -37,9 +37,10 @@ public class GitRepositoryFactoryTests : IDisposable
     {
         // Arrange
         var repositoryUri = new Uri(Constants.NonExistentTestRepositoryUri);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().BeNull();
@@ -53,9 +54,10 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -71,10 +73,11 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
         Repository.Clone(Constants.TestRepositoryUri, expectedRepositoryDirectory);
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -107,10 +110,11 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
         Directory.CreateDirectory(expectedRepositoryDirectory);
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -127,9 +131,10 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.EmptyTestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().BeNull();
