@@ -19,8 +19,4 @@
     <ItemGroup>
       <ProjectReference Include="..\ScoopSearch.Indexer\ScoopSearch.Indexer.csproj" />
     </ItemGroup>
-    <ItemGroup>
-      <Compile Remove="Processor\FetchBucketsProcessorTests.cs" />
-      <None Include="Processor\FetchBucketsProcessorTests.cs" />
-    </ItemGroup>
 </Project>
