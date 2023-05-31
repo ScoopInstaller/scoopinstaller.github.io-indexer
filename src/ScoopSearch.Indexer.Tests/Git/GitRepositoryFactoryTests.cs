@@ -37,14 +37,15 @@ public class GitRepositoryFactoryTests : IDisposable
     {
         // Arrange
         var repositoryUri = new Uri(Constants.NonExistentTestRepositoryUri);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().BeNull();
         _logger.Should()
-            .Log<LibGit2SharpException>(LogLevel.Error, _ => _.StartsWith($"Unable to clone repository '{repositoryUri}' to"));
+            .Log<LibGit2SharpException>(LogLevel.Error, message => message.StartsWith($"Unable to clone repository {repositoryUri} to"));
     }
 
     [Fact]
@@ -53,15 +54,16 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
         Directory.Exists(expectedRepositoryDirectory).Should().BeTrue();
         _logger.Should()
-            .Log(LogLevel.Debug, $"Cloning repository '{repositoryUri}' in '{expectedRepositoryDirectory}'")
+            .Log(LogLevel.Debug, $"Cloning repository {repositoryUri} in {expectedRepositoryDirectory}")
             .And.NoLog(LogLevel.Warning);
     }
 
@@ -71,16 +73,17 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
         Repository.Clone(Constants.TestRepositoryUri, expectedRepositoryDirectory);
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
         _logger.Should()
-            .Log(LogLevel.Debug, $"Pulling repository '{expectedRepositoryDirectory}'")
-            .And.NoLog(LogLevel.Warning);;
+            .Log(LogLevel.Debug, $"Pulling repository {expectedRepositoryDirectory}")
+            .And.NoLog(LogLevel.Warning);
     }
 
     [Fact]
@@ -98,7 +101,7 @@ public class GitRepositoryFactoryTests : IDisposable
         result.Should().BeNull();
         _logger.Should().Log<UserCancelledException>(
             LogLevel.Error,
-            $"Unable to clone repository '{repositoryUri}' to '{expectedRepositoryDirectory}'");
+            $"Unable to clone repository {repositoryUri} to {expectedRepositoryDirectory}");
     }
 
     [Fact]
@@ -107,18 +110,19 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
         Directory.CreateDirectory(expectedRepositoryDirectory);
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
         _logger.Should()
             .Log<RepositoryNotFoundException>(
                 LogLevel.Warning,
-                $"Unable to pull repository '{Constants.TestRepositoryUri}' to '{expectedRepositoryDirectory}'")
-            .And.Log(LogLevel.Debug, $"Cloning repository '{Constants.TestRepositoryUri}' in '{expectedRepositoryDirectory}'");
+                $"Unable to pull repository {Constants.TestRepositoryUri} to {expectedRepositoryDirectory}")
+            .And.Log(LogLevel.Debug, $"Cloning repository {Constants.TestRepositoryUri} in {expectedRepositoryDirectory}");
     }
 
     [Fact]
@@ -127,13 +131,14 @@ public class GitRepositoryFactoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.EmptyTestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = _sut.Download(repositoryUri, CancellationToken.None);
+        var result = _sut.Download(repositoryUri, cancellationToken);
 
         // Assert
         result.Should().BeNull();
         _logger.Should()
-            .Log(LogLevel.Error, $"No valid branch found in '{expectedRepositoryDirectory}'");
+            .Log(LogLevel.Error, $"No valid branch found in {expectedRepositoryDirectory}");
     }
 }

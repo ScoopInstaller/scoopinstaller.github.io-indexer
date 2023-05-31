@@ -38,7 +38,8 @@ public class GitRepositoryTests : IDisposable
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
         var expectedRepositoryDirectory = Path.Combine(_repositoriesDirectory, repositoryUri.AbsolutePath[1..]);
-        var repository = _provider.Download(repositoryUri, CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(repositoryUri, cancellationToken)!;
 
         // Assert
         Directory.Exists(expectedRepositoryDirectory).Should().BeTrue();
@@ -55,7 +56,8 @@ public class GitRepositoryTests : IDisposable
     {
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
-        var repository = _provider.Download(repositoryUri, CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(repositoryUri, cancellationToken)!;
 
         // Act
         var result = repository.GetBranchName();
@@ -69,7 +71,8 @@ public class GitRepositoryTests : IDisposable
     {
         // Arrange
         var repositoryUri = new Uri(Constants.TestRepositoryUri);
-        var repository = _provider.Download(repositoryUri, CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(repositoryUri, cancellationToken)!;
 
         // Act + Assert
         repository.Should().BeAssignableTo<IDisposable>().Subject.Dispose();
@@ -79,7 +82,8 @@ public class GitRepositoryTests : IDisposable
     public void GetItemsFromIndex_ReturnsEntries()
     {
         // Arrange
-        var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), cancellationToken)!;
 
         // Act
         var result = repository.GetFilesFromIndex();
@@ -89,45 +93,49 @@ public class GitRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void ReadContent_NonExistentEntry_Throws()
+    public async void ReadContentAsync_NonExistentEntry_Throws()
     {
         // Arrange
-        var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), cancellationToken)!;
 
         // Act
-        Action act = () => repository.ReadContent("foo");
+        var result = async () => await repository.ReadContentAsync("foo", cancellationToken);
 
         // Assert
-        act.Should().Throw<FileNotFoundException>();
+        await result.Should().ThrowAsync<FileNotFoundException>();
     }
 
     [Fact]
-    public void ReadContent_ExistentEntry_ReturnsContent()
+    public async void ReadContentAsync_ExistentEntry_ReturnsContent()
     {
         // Arrange
-        var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(new Uri(Constants.TestRepositoryUri), cancellationToken)!;
 
         // Act
-        var result = repository.ReadContent("kaxaml.json");
+        var result = async () => await repository.ReadContentAsync("kaxaml.json", cancellationToken);
 
         // Assert
-        result.Should().NotBeNull();
-        JsonSerializer.Deserialize<object?>(result).Should().NotBeNull();
+        var taskResult = await result.Should().NotThrowAsync();
+        JsonSerializer.Deserialize<object?>(taskResult.Subject).Should().NotBeNull();
     }
 
     [Theory]
     [MemberData(nameof(GetCommitsCacheTestCases))]
-    public void GetCommitsCache_ReturnsExpectedFilesAndCommits(string repositoryUri, Predicate<string> filter, int expectedFiles, int expectedCommits)
+    public async void GetCommitsCacheAsync_ReturnsExpectedFilesAndCommits(string repositoryUri, Predicate<string> filter, int expectedFiles, int expectedCommits)
     {
         // Arrange
-        var repository = _provider.Download(new Uri(repositoryUri), CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(new Uri(repositoryUri), cancellationToken)!;
 
         // Act
-        var result = repository.GetCommitsCache(filter, CancellationToken.None);
+        var result = async () => await repository.GetCommitsCacheAsync(filter, cancellationToken);
 
         // Assert
-        result.Should().HaveCount(expectedFiles);
-        result.SelectMany(_ => _.Value).DistinctBy(_ => _.Sha).Should().HaveCount(expectedCommits);
+        var taskResult = await result.Should().NotThrowAsync();
+        taskResult.Subject.Should().HaveCount(expectedFiles)
+            .And.Subject.SelectMany(kv => kv.Value).DistinctBy(commitInfo => commitInfo.Sha).Should().HaveCount(expectedCommits);
     }
 
     public static IEnumerable<object[]> GetCommitsCacheTestCases()
@@ -135,25 +143,25 @@ public class GitRepositoryTests : IDisposable
         // repository, filter, expected files, expected commits
         yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(_ => true), 14, 39 };
         yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(_ => false), 0, 0 };
-        yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(_ => _.EndsWith(".json")), 11, 30 };
+        yield return new object[] { Constants.TestRepositoryUri, new Predicate<string>(filePath => filePath.EndsWith(".json")), 11, 30 };
     }
 
     [Theory]
     [InlineData(Constants.TestRepositoryUri, 1, 5)]
     [InlineData("https://github.com/niheaven/scoop-sysinternals", 1, 70)]
     [InlineData("https://github.com/ScoopInstaller/Extras", 10, 1_900)]
-    public void GetCommitsCache_BuildCache_Succeeds(string repositoryUri, double maxSeconds, int minimalManifestsCount)
+    public async void GetCommitsCacheAsync_BuildCache_Succeeds(string repositoryUri, double maxSeconds, int minimalManifestsCount)
     {
         // Arrange
-        var repository = _provider.Download(new Uri(repositoryUri), CancellationToken.None)!;
+        var cancellationToken = new CancellationToken();
+        var repository = _provider.Download(new Uri(repositoryUri), cancellationToken)!;
         bool IsManifestFile(string filePath) => Path.GetExtension(filePath).Equals(".json", StringComparison.OrdinalIgnoreCase);
 
         // Act
-        IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>? result = null;
-        Action act = () => result = repository.GetCommitsCache(IsManifestFile, CancellationToken.None);
+        var result = async () => await repository.GetCommitsCacheAsync(IsManifestFile, cancellationToken);
 
         // Assert
-        act.ExecutionTime().Should().BeLessThan(maxSeconds.Seconds());
-        result.Should().HaveCountGreaterThan(minimalManifestsCount);
+        var taskResult = await result.Should().CompleteWithinAsync(maxSeconds.Seconds());
+        taskResult.Subject.Should().HaveCountGreaterThan(minimalManifestsCount);
     }
 }

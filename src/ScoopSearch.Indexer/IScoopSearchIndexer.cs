@@ -2,5 +2,5 @@ namespace ScoopSearch.Indexer;
 
 public interface IScoopSearchIndexer
 {
-    Task ExecuteAsync();
+    Task ExecuteAsync(CancellationToken cancellationToken);
 }

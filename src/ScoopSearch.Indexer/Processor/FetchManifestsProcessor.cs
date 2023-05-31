@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using ScoopSearch.Indexer.Buckets;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Manifest;
@@ -18,41 +20,28 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
         _logger = logger;
     }
 
-    public async Task<ManifestInfo[]> FetchManifestsAsync(BucketInfo bucketInfo, CancellationToken cancellationToken)
+    public IAsyncEnumerable<ManifestInfo> FetchManifestsAsync(Bucket bucket, CancellationToken cancellationToken)
     {
         // Clone/Update bucket repository and retrieve manifests
-        _logger.LogInformation("Generating manifests list for '{Bucket}'", bucketInfo.Uri);
+        _logger.LogDebug("Generating manifests list for {Bucket}", bucket.Uri);
 
-        var manifestsFromBucket = this
-            .GetManifestsFromRepository(bucketInfo.Uri, cancellationToken)
-            .ToArray();
-
-        _logger.LogInformation("Found {Count} manifests for {Bucket}", manifestsFromBucket.Length, bucketInfo.Uri);
-
-        foreach (var manifestInfo in manifestsFromBucket)
-        {
-            manifestInfo.Metadata.SetRepositoryMetadata(bucketInfo.Official, bucketInfo.Stars);
-        }
-
-        return await Task.FromResult(manifestsFromBucket);
+        return GetManifestsFromRepositoryAsync(bucket.Uri, cancellationToken);
     }
 
-    private IEnumerable<ManifestInfo> GetManifestsFromRepository(Uri bucketUri, CancellationToken cancellationToken)
+    private async IAsyncEnumerable<ManifestInfo> GetManifestsFromRepositoryAsync(Uri bucketUri, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var results = new List<ManifestInfo>();
-
         var repository = _gitRepositoryProvider.Download(bucketUri, cancellationToken);
         if (repository == null)
         {
-            return results;
+            yield break;
         }
 
-        _logger.LogDebug("Generating manifest infos from repository '{Repository}'", bucketUri);
+        _logger.LogDebug("Generating manifest infos from repository {Repository}", bucketUri);
 
         var files = repository.GetFilesFromIndex().ToArray();
         var manifestsSubPath = files.Any(_ => _.StartsWith("bucket/")) ? "bucket" : null;
 
-        var commitCache = repository.GetCommitsCache(_ => IsManifestPredicate(manifestsSubPath, _), cancellationToken);
+        var commitCache = await repository.GetCommitsCacheAsync(_ => IsManifestPredicate(manifestsSubPath, _), cancellationToken);
 
         foreach (var filePath in files
                      .Where(_ => IsManifestPredicate(manifestsSubPath, _))
@@ -60,7 +49,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
         {
             if (commitCache.TryGetValue(filePath, out var commits) && commits.FirstOrDefault() is { } commit)
             {
-                var manifestData = repository.ReadContent(filePath);
+                var manifestData = await repository.ReadContentAsync(filePath, cancellationToken);
                 var manifestMetadata = new ManifestMetadata(
                     bucketUri.AbsoluteUri,
                     repository.GetBranchName(),
@@ -71,18 +60,16 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
                 var manifest = CreateManifest(manifestData, manifestMetadata);
                 if (manifest != null)
                 {
-                    results.Add(manifest);
+                    yield return manifest;
                 }
             }
             else
             {
-                _logger.LogWarning("Unable to find a commit for manifest '{Manifest}' from '{Repository}'", filePath, bucketUri);
+                _logger.LogWarning("Unable to find a commit for manifest {Manifest} from {Repository}", filePath, bucketUri);
             }
         }
 
         repository.Delete();
-
-        return results;
     }
 
     bool IsManifestPredicate(string? manifestsSubPath, string filePath)
@@ -102,7 +89,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to parse manifest '{Manifest}' from '{Repository}'", metadata.FilePath, metadata.Repository);
+            _logger.LogError(ex, "Unable to parse manifest {Manifest} from {Repository}", metadata.FilePath, metadata.Repository);
         }
 
         return null;

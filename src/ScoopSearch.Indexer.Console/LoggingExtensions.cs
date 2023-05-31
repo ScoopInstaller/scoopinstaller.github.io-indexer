@@ -28,16 +28,21 @@ public static class LoggingExtensions
                 .Enrich.WithSensitiveDataMasking(options =>
                 {
                     options.MaskingOperators.Clear();
-                    options.MaskingOperators.Add(new TokensMaskingOperator(
-                        provider.GetRequiredService<IOptions<GitHubOptions>>().Value.Token,
-                        provider.GetRequiredService<IOptions<AzureSearchOptions>>().Value.AdminApiKey
-                    ));
+                    var tokens = new[]
+                        {
+                            provider.GetRequiredService<IOptions<GitHubOptions>>().Value.Token,
+                            provider.GetRequiredService<IOptions<AzureSearchOptions>>().Value.AdminApiKey
+                        }
+                        .Where(token => token != null)
+                        .Cast<string>()
+                        .ToArray();
+                    options.MaskingOperators.Add(new TokensMaskingOperator(tokens));
                 })
                 .WriteTo.File(new CompactJsonFormatter(), logFile)
                 .WriteTo.Logger(options => options
                     .MinimumLevel.Information()
                     // Exclude verbose HttpClient logs from the console
-                    .Filter.ByExcluding(_ => Matching.FromSource(typeof(HttpClient).FullName)(_) && _.Level < LogEventLevel.Warning)
+                    .Filter.ByExcluding(_ => Matching.FromSource(typeof(HttpClient).FullName!)(_) && _.Level < LogEventLevel.Warning)
                     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {ThreadId}] {Message:lj}{NewLine}"));
         });
     }

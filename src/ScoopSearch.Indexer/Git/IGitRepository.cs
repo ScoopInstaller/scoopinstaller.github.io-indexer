@@ -4,11 +4,11 @@ public interface IGitRepository
 {
     void Delete();
 
-    IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>> GetCommitsCache(Predicate<string> filter, CancellationToken cancellationToken);
+    Task<IReadOnlyDictionary<string, IReadOnlyCollection<CommitInfo>>> GetCommitsCacheAsync(Predicate<string> filter, CancellationToken cancellationToken);
 
     string GetBranchName();
 
     IEnumerable<string> GetFilesFromIndex();
 
-    string ReadContent(string filePath);
+    Task<string> ReadContentAsync(string filePath, CancellationToken cancellationToken);
 }

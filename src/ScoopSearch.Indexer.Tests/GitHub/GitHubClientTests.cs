@@ -1,7 +1,7 @@
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using ScoopSearch.Indexer.GitHub;
+using ScoopSearch.Indexer.Tests.Helpers;
 using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.GitHub;
@@ -13,75 +13,40 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     public GitHubClientTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
     {
         hostFixture.Configure(testOutputHelper);
+        var logger = new XUnitLogger<GitHubClient>(testOutputHelper);
 
-        _sut = new GitHubClient(hostFixture.Instance.Services.GetRequiredService<IHttpClientFactory>());
-    }
-
-    [Fact]
-    public async void GetAsStringAsync_NonExistentUrl_Throws()
-    {
-        // Arrange
-        var uri = new Uri("http://example.invalid/foo/bar");
-
-        // Act
-        Func<Task> act = () => _sut.GetAsStringAsync(uri, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<HttpRequestException>();
-    }
-
-    [Fact]
-    public async void GetAsStringAsync_OfficialBuckets_ReturnsDictionaryOfBuckets()
-    {
-        // Arrange
-        var bucketsListUri = new Uri("https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/buckets.json");
-
-        // Act
-        var result = await _sut.GetAsStringAsync(bucketsListUri, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-
-        // Act
-        var dictionary = JsonSerializer.Deserialize<Dictionary<string, Uri>>(result);
-
-        // Assert
-        dictionary.Should().NotBeNull()
-            .And.HaveCountGreaterOrEqualTo(10, "because it contains a bunch of Official buckets")
-            .And.ContainKey("main", "because it contains the Official main bucket")
-            .And.ContainKey("extras", "because it contains the Official extras bucket");
+        _sut = new GitHubClient(hostFixture.Instance.Services.GetRequiredService<IHttpClientFactory>(), logger);
     }
 
     [Theory]
-    [InlineData("https://raw.githubusercontent.com/rasa/scoop-directory/master/exclude.txt")]
-    [InlineData("https://raw.githubusercontent.com/rasa/scoop-directory/master/include.txt")]
-    public async void GetAsStringAsync_BucketsLists_ReturnsListOfBuckets(string input)
+    [InlineData("http://example.com/foo/bar")]
+    public async void GetRepositoryAsync_InvalidRepo_ReturnsNull(string input)
     {
         // Arrange
         var uri = new Uri(input);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = await _sut.GetAsStringAsync(uri, CancellationToken.None);
+        var result = () => _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
-        result.Should().StartWith("url");
-        result.Split(Environment.NewLine).Should().HaveCountGreaterThan(10, "because it contains at least 10 buckets");
+        var taskResult = await result.Should().NotThrowAsync();
+        taskResult.Subject.Should().BeNull();
     }
 
     [Theory]
     [InlineData("http://example.invalid/foo/bar")]
-    [InlineData("http://example.com/foo/bar")]
-    public async void GetRepositoryAsync_InvalidRepo_Throws(string input)
+    public async void GetRepositoryAsync_InvalidDomain_Throws(string input)
     {
         // Arrange
         var uri = new Uri(input);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        Func<Task> act = () => _sut.GetRepositoryAsync(uri, CancellationToken.None);
+        var result = () => _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
-        (await act.Should().ThrowAsync<ArgumentException>())
-            .And.Message.Should().Be("The URI must be a GitHub repo URI (Parameter 'uri')");
+        await result.Should().ThrowAsync<HttpRequestException>();
     }
 
     [Fact]
@@ -89,12 +54,28 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(Constants.NonExistentTestRepositoryUri);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = await _sut.GetRepositoryAsync(uri, CancellationToken.None);
+        var result = await _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public async void GetRepositoryAsync_RedirectedRepo_ReturnsNull()
+    {
+        // Arrange
+        var uri = new Uri("https://github.com/MCOfficer/scoop-nirsoft");
+        var cancellationToken = new CancellationToken();
+
+        // Act
+        var result = await _sut.GetRepositoryAsync(uri, cancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.HtmlUri.Should().Be("https://github.com/ScoopInstaller/Nirsoft");
     }
 
     [Theory]
@@ -104,30 +85,28 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     {
         // Arrange
         var uri = new Uri(input);
+        var cancellationToken = new CancellationToken();
 
         // Act
-        var result = await _sut.GetRepositoryAsync(uri, CancellationToken.None);
+        var result = await _sut.GetRepositoryAsync(uri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
         result!.HtmlUri.Should().Be(uri);
-        result!.Stars.Should().BeGreaterThan(expectedMinimumStars, "because official repo should have a large amount of stars");
+        result.Stars.Should().BeGreaterThan(expectedMinimumStars, "because official repo should have a large amount of stars");
     }
 
     [Theory]
-    [InlineData("http://example.invalid/foo/bar")]
-    [InlineData("http://example.com/foo/bar")]
-    [InlineData("https://github.com/foo/bar")]
-    [InlineData("https://api.github.com/search/repositories?q")]
-    public async void SearchRepositoriesAsync_InvalidQueryUrl_Throws(string input)
+    [InlineData(new object[] { new string[0] })]
+    [InlineData(new object[] { new[] { "" } })]
+    [InlineData(new object[] { new[] { "&&==" } })]
+    public async void SearchRepositoriesAsync_InvalidQueryUrl_Throws(string[] input)
     {
-        // Arrange
-        var uri = new Uri(input);
-
-        // Act
+        // Arrange + Act
+        var cancellationToken = new CancellationToken();
         try
         {
-            await _sut.SearchRepositoriesAsync(uri, CancellationToken.None).ToArrayAsync();
+            await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
             Assert.Fail("Should have thrown");
         }
         catch (AggregateException ex)
@@ -141,50 +120,18 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     }
 
     [Theory]
-    [InlineData("https://api.github.com/search/repositories?q=scoop-bucket+created:>2023-01-01")]
-    [InlineData("https://api.github.com/search/repositories?q=scoop+bucket+created:>2023-01-01")]
-    public async void SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string input)
+    [InlineData(new object[] { new[] { "scoop-bucket", "created:>2023-01-01" } })]
+    [InlineData(new object[] { new[] { "scoop+bucket", "created:>2023-01-01" } })]
+    public async void SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string[] input)
     {
-        // Arrange
-        var uri = new Uri(input);
-
-        // Act
-        var result = await _sut.SearchRepositoriesAsync(uri, CancellationToken.None).ToArrayAsync();
+        // Arrange + Act
+        var cancellationToken = new CancellationToken();
+        var result = await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
         result.Length.Should()
             .BeGreaterThan(0, "because there should be at least 1 result")
             .And.BeLessThan(900, "because there should be less than 900 results. If it returns more than 900, the date condition should be updated");
-    }
-
-    [Fact]
-    public async void SendAsync_NonExistentUrl_Throws()
-    {
-        // Arrange
-        var uri = new Uri("http://example.invalid/foo/bar");
-        var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, uri);
-
-        // Act
-        Func<Task> act = () => _sut.SendAsync(httpRequestMessage, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<HttpRequestException>();
-    }
-
-    [Theory]
-    [InlineData("https://github.com/okibcn/Bucket.git")]
-    [InlineData("https://github.com/01walid/it-scoop.git")]
-    public async void SendAsync_FollowRedirection_Succeeds(string input)
-    {
-        // Arrange
-        var uri = new Uri(input);
-        var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, uri);
-
-        // Act
-        var result = await _sut.SendAsync(httpRequestMessage, CancellationToken.None);
-
-        // Assert
-        result.Should().BeSuccessful();
     }
 }

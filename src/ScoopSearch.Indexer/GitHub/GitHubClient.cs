@@ -1,46 +1,40 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using ScoopSearch.Indexer.Extensions;
 
 namespace ScoopSearch.Indexer.GitHub;
 
 internal class GitHubClient : IGitHubClient
 {
-    private const string GitHubApiRepoBaseUri = "https://api.github.com/repos";
-    private const string GitHubDomain = "github.com";
+    private const string GitHubApiBaseUri = "https://api.github.com/";
     private const int ResultsPerPage = 100;
 
-    private readonly HttpClient _githubHttpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<GitHubClient> _logger;
 
-    public GitHubClient(IHttpClientFactory httpClientFactory)
+    public GitHubClient(IHttpClientFactory httpClientFactory, ILogger<GitHubClient> logger)
     {
-        _githubHttpClient = httpClientFactory.CreateClient(Constants.GitHubHttpClientName);
-    }
-
-    public async Task<string> GetAsStringAsync(Uri uri, CancellationToken cancellationToken)
-    {
-        using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-        using (var response = await _githubHttpClient.SendAsync(request, cancellationToken))
-        {
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadAsStringAsync(cancellationToken);
-        }
-    }
-
-    public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        return _githubHttpClient.SendAsync(request, cancellationToken);
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     public async Task<GitHubRepo?> GetRepositoryAsync(Uri uri, CancellationToken cancellationToken)
     {
-        if (!IsValidRepositoryDomain(uri))
+        var targetUri = await GetTargetRepositoryAsync(uri, cancellationToken);
+        if (targetUri == null)
         {
-            throw new ArgumentException("The URI must be a GitHub repo URI", nameof(uri));
+            _logger.LogWarning("{Uri} doesn't appear to be valid (non success status code)", uri);
+            return null;
         }
 
-        var apiRepoUri = new Uri(GitHubApiRepoBaseUri + uri.PathAndQuery);
-        return await GetAsStringAsync(apiRepoUri, cancellationToken)
+        if (targetUri != uri)
+        {
+            _logger.LogInformation("{Uri} is redirected to {TargetUri}", uri, targetUri);
+        }
+
+        var getRepoUri = BuildUri("repos" + targetUri.PathAndQuery);
+        return await _httpClientFactory.CreateGitHubClient().GetStringAsync(getRepoUri, cancellationToken)
             .ContinueWith(task =>
             {
                 if (task.IsCompletedSuccessfully)
@@ -54,24 +48,46 @@ internal class GitHubClient : IGitHubClient
             }, cancellationToken);
     }
 
-    public bool IsValidRepositoryDomain(Uri uri)
+    private async Task<Uri?> GetTargetRepositoryAsync(Uri uri, CancellationToken cancellationToken)
     {
-        return uri.Host.EndsWith(GitHubDomain, StringComparison.Ordinal);
+        // Validate uri (existing repository, follow redirections...)
+        using var request = new HttpRequestMessage(HttpMethod.Head, uri);
+        using var response = await _httpClientFactory.CreateGitHubClient().SendAsync(request, cancellationToken);
+
+        if (request.RequestUri != null)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            return request.RequestUri;
+        }
+
+        return null;
     }
 
-    public async IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(Uri query, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string[] query, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         int page = 1;
         int? totalPages = null;
         do
         {
-            var searchUri = new Uri($"{query.AbsoluteUri}&per_page={ResultsPerPage}&page={page}&sort=updated");
-            var results = await GetSearchResultsAsync(searchUri, cancellationToken);
+            var queryString = new Dictionary<string, object>()
+            {
+                { "q", string.Join('+', query) },
+                { "per_page", ResultsPerPage },
+                { "page", page },
+                { "sort", "updated" }
+            };
+            var searchReposUri = BuildUri("/search/repositories", queryString);
+            var results = await GetSearchResultsAsync(searchReposUri, cancellationToken);
             if (results == null)
             {
                 break;
             }
 
+            _logger.LogDebug("Found {Count} repositories for query {Query}", results.Items.Length, searchReposUri);
             foreach (var gitHubRepo in results.Items)
             {
                 yield return gitHubRepo;
@@ -83,7 +99,18 @@ internal class GitHubClient : IGitHubClient
 
     private async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
     {
-        return await GetAsStringAsync(searchUri, cancellationToken)
+        return await _httpClientFactory.CreateGitHubClient().GetStringAsync(searchUri, cancellationToken)
             .ContinueWith(task => JsonSerializer.Deserialize<GitHubSearchResults>(task.Result), cancellationToken);
+    }
+
+    private static Uri BuildUri(string path, Dictionary<string, object>? queryString = null)
+    {
+        var uriBuilder = new UriBuilder(GitHubApiBaseUri)
+        {
+            Path = path,
+            Query = queryString == null ? null : string.Join("&", queryString.Select(kv => $"{kv.Key}={kv.Value}"))
+        };
+
+        return uriBuilder.Uri;
     }
 }
