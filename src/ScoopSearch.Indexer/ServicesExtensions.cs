@@ -6,6 +6,7 @@ using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Extensions;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.GitHub;
+using ScoopSearch.Indexer.GitLab;
 using ScoopSearch.Indexer.Indexer;
 using ScoopSearch.Indexer.Manifest;
 using ScoopSearch.Indexer.Processor;
@@ -26,23 +27,27 @@ public static class ServicesExtensions
         @this
             .AddOptions<GitHubOptions>()
             .Configure<IConfiguration>((options, configuration) => configuration.GetRequiredSection(GitHubOptions.Key).Bind(options));
+        @this
+            .AddOptions<GitLabOptions>()
+            .Configure<IConfiguration>((options, configuration) => configuration.GetRequiredSection(GitLabOptions.Key).Bind(options));
 
         // Services
         @this.AddHttpClients();
         @this.AddSingleton<IGitRepositoryProvider, GitRepositoryProvider>();
         @this.AddSingleton<IGitHubClient, GitHubClient>();
+        @this.AddSingleton<IGitLabClient, GitLabClient>();
         @this.AddSingleton<ISearchClient, AzureSearchClient>();
         @this.AddSingleton<ISearchIndex, AzureSearchIndex>();
         @this.AddSingleton<IKeyGenerator, KeyGenerator>();
         @this.AddSingleton<IIndexingProcessor, IndexingProcessor>();
 
         @this.AddSingleton<IBucketsProvider, GitHubBucketsProvider>();
-        // TODO Add other providers (GitLab...)
+        @this.AddSingleton<IBucketsProvider, GitLabBucketsProvider>();
 
         @this.AddSingleton<IOfficialBucketsSource, OfficialBucketsSource>();
         @this.AddSingleton<IBucketsSource, OfficialBucketsSource>();
         @this.AddSingleton<IBucketsSource, GitHubBucketsSource>();
-        // TODO Add other sources (GitLab...)
+        @this.AddSingleton<IBucketsSource, GitLabBucketsSource>();
         @this.AddSingleton<IBucketsSource, ManualBucketsListSource>();
         @this.AddSingleton<IBucketsSource, ManualBucketsSource>();
 

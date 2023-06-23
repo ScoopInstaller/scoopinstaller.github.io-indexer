@@ -31,6 +31,7 @@ public static class LoggingExtensions
                     var tokens = new[]
                         {
                             provider.GetRequiredService<IOptions<GitHubOptions>>().Value.Token,
+                            provider.GetRequiredService<IOptions<GitLabOptions>>().Value.Token,
                             provider.GetRequiredService<IOptions<AzureSearchOptions>>().Value.AdminApiKey
                         }
                         .Where(token => token != null)

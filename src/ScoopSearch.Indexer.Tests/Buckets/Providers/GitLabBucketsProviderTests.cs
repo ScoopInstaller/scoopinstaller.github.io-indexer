@@ -1,20 +1,20 @@
 using FluentAssertions;
 using Moq;
 using ScoopSearch.Indexer.Buckets.Providers;
-using ScoopSearch.Indexer.GitHub;
+using ScoopSearch.Indexer.GitLab;
 using ScoopSearch.Indexer.Tests.Helpers;
 
 namespace ScoopSearch.Indexer.Tests.Buckets.Providers;
 
-public class GitHubBucketsProviderTests
+public class GitLabBucketsProviderTests
 {
-    private readonly Mock<IGitHubClient> _gitHubClientMock;
-    private readonly GitHubBucketsProvider _sut;
+    private readonly Mock<IGitLabClient> _gitLabClientMock;
+    private readonly GitLabBucketsProvider _sut;
 
-    public GitHubBucketsProviderTests()
+    public GitLabBucketsProviderTests()
     {
-        _gitHubClientMock = new Mock<IGitHubClient>();
-        _sut = new GitHubBucketsProvider(_gitHubClientMock.Object);
+        _gitLabClientMock = new Mock<IGitLabClient>();
+        _sut = new GitLabBucketsProvider(_gitLabClientMock.Object);
     }
 
     [Theory]
@@ -22,13 +22,13 @@ public class GitHubBucketsProviderTests
     [InlineData("https://foo/bar", false)]
     [InlineData("http://www.google.fr/foo", false)]
     [InlineData("https://www.google.fr/foo", false)]
-    [InlineData("http://github.com", true)]
-    [InlineData("https://github.com", true)]
-    [InlineData("http://www.github.com", true)]
-    [InlineData("https://www.github.com", true)]
-    [InlineData("http://www.GitHub.com", true)]
-    [InlineData("https://www.GitHub.com", true)]
-    [InlineData("https://www.github.com/foo/bar", true)]
+    [InlineData("http://gitlab.com", true)]
+    [InlineData("https://gitlab.com", true)]
+    [InlineData("http://www.gitlab.com", true)]
+    [InlineData("https://www.gitlab.com", true)]
+    [InlineData("http://www.GitLab.com", true)]
+    [InlineData("https://www.GitLab.com", true)]
+    [InlineData("https://www.gitlab.com/foo/bar", true)]
     public void IsCompatible_Succeeds(string input, bool expectedResult)
     {
         // Arrange
@@ -47,16 +47,16 @@ public class GitHubBucketsProviderTests
         // Arrange
         var cancellationToken = new CancellationToken();
         var uri = Faker.CreateUri();
-        var gitHubRepo = Faker.CreateGitHubRepo().Generate();
-        _gitHubClientMock.Setup(x => x.GetRepositoryAsync(uri, cancellationToken)).ReturnsAsync(gitHubRepo);
+        var gitLabRepo = Faker.CreateGitLabRepo().Generate();
+        _gitLabClientMock.Setup(x => x.GetRepositoryAsync(uri, cancellationToken)).ReturnsAsync(gitLabRepo);
 
         // Act
         var result = await _sut.GetBucketAsync(uri, cancellationToken);
 
         // Assert
         result.Should().NotBeNull();
-        result!.Uri.Should().Be(gitHubRepo.HtmlUri);
-        result.Stars.Should().Be(gitHubRepo.Stars);
+        result!.Uri.Should().Be(gitLabRepo.WebUrl);
+        result.Stars.Should().Be(gitLabRepo.Stars);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class GitHubBucketsProviderTests
         // Arrange
         var cancellationToken = new CancellationToken();
         var uri = Faker.CreateUri();
-        _gitHubClientMock.Setup(x => x.GetRepositoryAsync(uri, cancellationToken)).ReturnsAsync((GitHubRepo?)null);
+        _gitLabClientMock.Setup(x => x.GetRepositoryAsync(uri, cancellationToken)).ReturnsAsync((GitLabRepo?)null);
 
         // Act
         var result = await _sut.GetBucketAsync(uri, cancellationToken);

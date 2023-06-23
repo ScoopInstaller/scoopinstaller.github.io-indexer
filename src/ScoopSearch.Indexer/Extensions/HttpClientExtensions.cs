@@ -13,12 +13,15 @@ internal static class HttpClientExtensions
 {
     private const string DefaultHttpClient = "Default";
     private const string GitHubHttpClient = "GitHub";
+    private const string GitLabHttpClient = "GitLab";
 
     public static void AddHttpClients(this IServiceCollection services)
     {
+        var retryPolicy = CreateRetryPolicy();
+
         services
             .AddHttpClient(DefaultHttpClient)
-            .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
+            .AddPolicyHandler(retryPolicy);
 
         services
             .AddHttpClient(GitHubHttpClient, (serviceProvider, client) =>
@@ -38,6 +41,19 @@ internal static class HttpClientExtensions
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
         })
         .AddPolicyHandler((provider, _) => CreateGitHubRetryPolicy(provider));
+
+        services
+            .AddHttpClient(GitLabHttpClient, (serviceProvider, client) =>
+        {
+            // Authentication
+            var gitLabOptions = serviceProvider.GetRequiredService<IOptions<GitLabOptions>>();
+            if (gitLabOptions.Value.Token == null)
+            {
+                serviceProvider.GetRequiredService<ILogger<HttpClient>>().LogWarning("GitLab Token is not defined in configuration.");
+            }
+            client.DefaultRequestHeaders.Add("PRIVATE-TOKEN", gitLabOptions.Value.Token);
+        })
+        .AddPolicyHandler(retryPolicy);
     }
 
     public static HttpClient CreateDefaultClient(this IHttpClientFactory @this)
@@ -48,6 +64,18 @@ internal static class HttpClientExtensions
     public static HttpClient CreateGitHubClient(this IHttpClientFactory @this)
     {
         return @this.CreateClient(GitHubHttpClient);
+    }
+
+    public static HttpClient CreateGitLabClient(this IHttpClientFactory @this)
+    {
+        return @this.CreateClient(GitLabHttpClient);
+    }
+
+    private static IAsyncPolicy<HttpResponseMessage> CreateRetryPolicy()
+    {
+        return HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
     }
 
     private static IAsyncPolicy<HttpResponseMessage> CreateGitHubRetryPolicy(IServiceProvider provider)
