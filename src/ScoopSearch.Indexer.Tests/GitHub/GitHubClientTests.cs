@@ -93,7 +93,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
         // Assert
         result.Should().NotBeNull();
         result!.HtmlUri.Should().Be(uri);
-        result.Stars.Should().BeGreaterThan(expectedMinimumStars, "because official repo should have a large amount of stars");
+        result.Stars.Should().BeGreaterOrEqualTo(expectedMinimumStars, "because official repo should have a large amount of stars");
     }
 
     [Theory]
@@ -102,21 +102,14 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [InlineData(new object[] { new[] { "&&==" } })]
     public async void SearchRepositoriesAsync_InvalidQueryUrl_Throws(string[] input)
     {
-        // Arrange + Act
+        // Arrange
         var cancellationToken = new CancellationToken();
-        try
-        {
-            await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
-            Assert.Fail("Should have thrown");
-        }
-        catch (AggregateException ex)
-        {
-            // Assert
-            ex.InnerException.Should().BeOfType<HttpRequestException>();
-            return;
-        }
 
-        Assert.Fail("Should have thrown an AggregateException");
+        // Act
+        var result = await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
+
+        // Assert
+        result.Should().BeEmpty();
     }
 
     [Theory]
@@ -124,8 +117,10 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [InlineData(new object[] { new[] { "scoop+bucket", "created:>2023-01-01" } })]
     public async void SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string[] input)
     {
-        // Arrange + Act
+        // Arrange
         var cancellationToken = new CancellationToken();
+
+        // Act
         var result = await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
 
         // Assert

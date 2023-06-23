@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Extensions;
 
@@ -35,17 +35,7 @@ internal class GitHubClient : IGitHubClient
 
         var getRepoUri = BuildUri("repos" + targetUri.PathAndQuery);
         return await _httpClientFactory.CreateGitHubClient().GetStringAsync(getRepoUri, cancellationToken)
-            .ContinueWith(task =>
-            {
-                if (task.IsCompletedSuccessfully)
-                {
-                    return JsonSerializer.Deserialize<GitHubRepo>(task.Result);
-                }
-                else
-                {
-                    return null;
-                }
-            }, cancellationToken);
+            .ContinueWith(task => task.Deserialize<GitHubRepo>(), cancellationToken);
     }
 
     private async Task<Uri?> GetTargetRepositoryAsync(Uri uri, CancellationToken cancellationToken)
@@ -84,7 +74,7 @@ internal class GitHubClient : IGitHubClient
             var results = await GetSearchResultsAsync(searchReposUri, cancellationToken);
             if (results == null)
             {
-                break;
+                yield break;
             }
 
             _logger.LogDebug("Found {Count} repositories for query {Query}", results.Items.Length, searchReposUri);
@@ -100,7 +90,7 @@ internal class GitHubClient : IGitHubClient
     private async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
     {
         return await _httpClientFactory.CreateGitHubClient().GetStringAsync(searchUri, cancellationToken)
-            .ContinueWith(task => JsonSerializer.Deserialize<GitHubSearchResults>(task.Result), cancellationToken);
+            .ContinueWith(task => task.Deserialize<GitHubSearchResults>(), cancellationToken);
     }
 
     private static Uri BuildUri(string path, Dictionary<string, object>? queryString = null)
@@ -112,5 +102,14 @@ internal class GitHubClient : IGitHubClient
         };
 
         return uriBuilder.Uri;
+    }
+
+    private class GitHubSearchResults
+    {
+        [JsonInclude, JsonPropertyName("total_count")]
+        public int TotalCount { get; private set; }
+
+        [JsonInclude, JsonPropertyName("items")]
+        public GitHubRepo[] Items { get; private set; } = null!;
     }
 }

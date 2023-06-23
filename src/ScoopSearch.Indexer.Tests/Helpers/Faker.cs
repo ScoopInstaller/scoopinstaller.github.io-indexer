@@ -1,6 +1,7 @@
 using Bogus;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.GitHub;
+using ScoopSearch.Indexer.GitLab;
 
 namespace ScoopSearch.Indexer.Tests.Helpers;
 
@@ -49,6 +50,16 @@ public static class Faker
         var faker = new Faker<GitHubRepo>()
             .StrictMode(true)
             .RuleFor(_ => _.HtmlUri, f => new Uri(f.Internet.Url()))
+            .RuleFor(_ => _.Stars, f => f.Random.Int(0, 1000));
+
+        return faker;
+    }
+
+    public static Faker<GitLabRepo> CreateGitLabRepo()
+    {
+        var faker = new Faker<GitLabRepo>()
+            .StrictMode(true)
+            .RuleFor(_ => _.WebUrl, f => new Uri(f.Internet.Url()))
             .RuleFor(_ => _.Stars, f => f.Random.Int(0, 1000));
 
         return faker;
