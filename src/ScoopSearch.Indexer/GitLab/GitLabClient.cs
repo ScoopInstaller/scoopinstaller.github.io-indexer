@@ -36,14 +36,14 @@ internal class GitLabClient : IGitLabClient
 
     public async IAsyncEnumerable<GitLabRepo> SearchRepositoriesAsync(string query, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var gitLabTopics = await _httpClientFactory.CreateDefaultClient().GetStringAsync(GitLabApiBaseUrl + $"/topics?search={WebUtility.UrlEncode(query)}&per_page={ResultsPerPage}", cancellationToken)
+        var gitLabTopics = await _httpClientFactory.CreateGitLabClient().GetStringAsync(GitLabApiBaseUrl + $"/topics?search={WebUtility.UrlEncode(query)}&per_page={ResultsPerPage}", cancellationToken)
             .ContinueWith(task => task.Deserialize<GitLabTopic[]>(), cancellationToken);
 
         if (gitLabTopics != null)
         {
             foreach (var gitLabTopic in gitLabTopics)
             {
-                var gitLabRepos = await _httpClientFactory.CreateDefaultClient().GetStringAsync(GitLabApiBaseUrl + $"/projects?topic_id={gitLabTopic.Id}&per_page={ResultsPerPage}", cancellationToken)
+                var gitLabRepos = await _httpClientFactory.CreateGitLabClient().GetStringAsync(GitLabApiBaseUrl + $"/projects?topic_id={gitLabTopic.Id}&per_page={ResultsPerPage}", cancellationToken)
                     .ContinueWith(task => task.Deserialize<GitLabRepo[]>(), cancellationToken);
 
                 if (gitLabRepos != null)

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,7 @@ internal static class HttpClientExtensions
             }
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
         })
-        .AddPolicyHandler(retryPolicy);
+        .AddPolicyHandler((provider, _) => CreateGitHubRetryPolicy(provider));
 
         services
             .AddHttpClient(GitLabHttpClient, (serviceProvider, client) =>
@@ -75,6 +76,30 @@ internal static class HttpClientExtensions
         return HttpPolicyExtensions
             .HandleTransientHttpError()
             .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+    }
+
+    private static IAsyncPolicy<HttpResponseMessage> CreateGitHubRetryPolicy(IServiceProvider provider)
+    {
+        return Policy<HttpResponseMessage>
+            .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
+            .OrTransientHttpStatusCode()
+            .WaitAndRetryAsync(5, (retryAttempt, result, _) =>
+            {
+                TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
+                if (result.Result?.StatusCode == HttpStatusCode.Forbidden && result.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+                {
+                    var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
+                    delay = rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
+                }
+
+                provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
+                    "GitHub HttpClient failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.",
+                    result.Result?.StatusCode,
+                    delay,
+                    retryAttempt);
+
+                return delay;
+            }, (_, _, _, _) => Task.CompletedTask);
     }
 }
 
