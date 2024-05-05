@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using ScoopSearch.Indexer.GitHub;
@@ -6,6 +7,7 @@ using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.GitHub;
 
+[SuppressMessage("Performance", "CA1861:Avoid constant arrays as arguments")]
 public class GitHubClientTests : IClassFixture<HostFixture>
 {
     private readonly GitHubClient _sut;

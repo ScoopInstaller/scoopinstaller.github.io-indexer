@@ -111,7 +111,7 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
         Repository.Clone(uri.AbsoluteUri, repositoryDirectory, cloneOptions);
     }
 
-    private void ConfigureFetchOptionsCancellation(FetchOptionsBase options, CancellationToken cancellationToken)
+    private static void ConfigureFetchOptionsCancellation(FetchOptionsBase options, CancellationToken cancellationToken)
     {
         options.OnProgress = _ => !cancellationToken.IsCancellationRequested;
         options.OnTransferProgress = _ => !cancellationToken.IsCancellationRequested;

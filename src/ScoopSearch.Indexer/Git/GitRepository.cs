@@ -81,7 +81,7 @@ internal class GitRepository : IGitRepository, IDisposable
             files.Clear();
         }
 
-        while (await process.StandardOutput.ReadLineAsync() is { } currentLine && !cancellationToken.IsCancellationRequested)
+        while (await process.StandardOutput.ReadLineAsync(cancellationToken) is { } currentLine && !cancellationToken.IsCancellationRequested)
         {
             var parts = currentLine.Split(':');
             switch (parts[0])

@@ -72,7 +72,7 @@ internal class FetchManifestsProcessor : IFetchManifestsProcessor
         repository.Delete();
     }
 
-    bool IsManifestPredicate(string? manifestsSubPath, string filePath)
+    private static bool IsManifestPredicate(string? manifestsSubPath, string filePath)
     {
         var isManifest = manifestsSubPath == null ? Path.GetDirectoryName(filePath)?.Length == 0 : Path.GetDirectoryName(filePath)?.StartsWith(manifestsSubPath) == true;
         isManifest &= Path.GetFileName(filePath)[0] != '.';

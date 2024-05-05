@@ -58,7 +58,7 @@ internal class ScoopSearchIndexer : IScoopSearchIndexer
             .Prepend(officialBuckets.ToAsyncEnumerable())
             .Merge()
             .Distinct(bucket => bucket.Uri.AbsoluteUri.ToLowerInvariant())
-            .Where(bucket => ignoredBuckets.Contains(bucket.Uri.AbsoluteUri.ToLowerInvariant()) == false);
+            .Where(bucket => !ignoredBuckets.Contains(bucket.Uri.AbsoluteUri.ToLowerInvariant()));
 
         var officialBucketsHashSet = officialBuckets.Select(bucket => bucket.Uri).ToHashSet();
         var allManifests = new ConcurrentBag<ManifestInfo>();

@@ -50,7 +50,7 @@ internal static class HttpClientExtensions
         return @this.CreateClient(GitHubHttpClient);
     }
 
-    private static IAsyncPolicy<HttpResponseMessage> CreateGitHubRetryPolicy(IServiceProvider provider)
+    private static Polly.Retry.AsyncRetryPolicy<HttpResponseMessage> CreateGitHubRetryPolicy(IServiceProvider provider)
     {
         return Policy<HttpResponseMessage>
             .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)

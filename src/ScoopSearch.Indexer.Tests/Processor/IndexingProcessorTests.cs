@@ -72,12 +72,12 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         _logger.Should().Log(LogLevel.Information, $"{expectedManifestsToAddCount} manifests to add to the index");
         _logger.Should().Log(LogLevel.Information, $"{expectedManifestsToUpdateCount} manifests to update in the index");
 
-        if (expectedManifestsToAddOrUpdate.Any())
+        if (expectedManifestsToAddOrUpdate.Length > 0)
         {
             _searchClientMock.Verify(_ => _.UpsertManifestsAsync(ManifestsMatcher(expectedManifestsToAddOrUpdate), cancellationToken));
         }
 
-        if (expectedManifestsToRemove.Any())
+        if (expectedManifestsToRemove.Length > 0)
         {
             _searchClientMock.Verify(_ => _.DeleteManifestsAsync(ManifestsMatcher(expectedManifestsToRemove), cancellationToken));
         }
