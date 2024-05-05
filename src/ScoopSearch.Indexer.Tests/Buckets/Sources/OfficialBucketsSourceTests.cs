@@ -39,7 +39,7 @@ public class OfficialBucketsSourceTests
     }
 
     [Fact]
-    public async void GetBucketsAsync_InvalidUri_ReturnsEmpty()
+    public async Task GetBucketsAsync_InvalidUri_ReturnsEmpty()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -56,7 +56,7 @@ public class OfficialBucketsSourceTests
     [Theory]
     [MemberData(nameof(GetBucketsAsyncErrorsTestCases))]
 #pragma warning disable xUnit1026
-    public async void GetBucketsAsync_InvalidStatusCodeSucceeds<TExpectedException>(HttpStatusCode statusCode, string content, TExpectedException _)
+    public async Task GetBucketsAsync_InvalidStatusCodeSucceeds<TExpectedException>(HttpStatusCode statusCode, string content, TExpectedException _)
 #pragma warning restore xUnit1026
         where TExpectedException : Exception
     {
@@ -89,7 +89,7 @@ public class OfficialBucketsSourceTests
 
     [Theory]
     [MemberData(nameof(GetBucketsAsyncTestCases))]
-    public async void GetBucketsAsync_Succeeds(string content, string repositoryUri, bool isCompatible, bool expectedBucket)
+    public async Task GetBucketsAsync_Succeeds(string content, string repositoryUri, bool isCompatible, bool expectedBucket)
     {
         // Arrange
         _bucketsOptions.OfficialBucketsListUrl = Faker.CreateUri();

@@ -93,7 +93,7 @@ public class GitRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async void ReadContentAsync_NonExistentEntry_Throws()
+    public async Task ReadContentAsync_NonExistentEntry_Throws()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -107,7 +107,7 @@ public class GitRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async void ReadContentAsync_ExistentEntry_ReturnsContent()
+    public async Task ReadContentAsync_ExistentEntry_ReturnsContent()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -123,7 +123,7 @@ public class GitRepositoryTests : IDisposable
 
     [Theory]
     [MemberData(nameof(GetCommitsCacheTestCases))]
-    public async void GetCommitsCacheAsync_ReturnsExpectedFilesAndCommits(string repositoryUri, Predicate<string> filter, int expectedFiles, int expectedCommits)
+    public async Task GetCommitsCacheAsync_ReturnsExpectedFilesAndCommits(string repositoryUri, Predicate<string> filter, int expectedFiles, int expectedCommits)
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -150,7 +150,7 @@ public class GitRepositoryTests : IDisposable
     [InlineData(Constants.TestRepositoryUri, 1, 5)]
     [InlineData("https://github.com/niheaven/scoop-sysinternals", 1, 70)]
     [InlineData("https://github.com/ScoopInstaller/Extras", 10, 1_900)]
-    public async void GetCommitsCacheAsync_BuildCache_Succeeds(string repositoryUri, double maxSeconds, int minimalManifestsCount)
+    public async Task GetCommitsCacheAsync_BuildCache_Succeeds(string repositoryUri, double maxSeconds, int minimalManifestsCount)
     {
         // Arrange
         var cancellationToken = new CancellationToken();

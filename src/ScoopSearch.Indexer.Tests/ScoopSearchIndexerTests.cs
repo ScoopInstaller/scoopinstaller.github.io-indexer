@@ -42,7 +42,7 @@ public class ScoopSearchIndexerTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void ExecuteAsync_ReturnsBuckets_Succeeds()
+    public async Task ExecuteAsync_ReturnsBuckets_Succeeds()
     {
         // Arrange
         const int expectedAtLeastBucketsCount = 1500;

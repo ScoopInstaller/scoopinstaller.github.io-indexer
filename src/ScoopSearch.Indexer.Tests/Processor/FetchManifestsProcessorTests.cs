@@ -32,7 +32,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void FetchManifestsAsync_ValidRepository_ReturnsManifests()
+    public async Task FetchManifestsAsync_ValidRepository_ReturnsManifests()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
@@ -49,7 +49,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void FetchManifestsAsync_EmptyRepository_ReturnsEmptyResults()
+    public async Task FetchManifestsAsync_EmptyRepository_ReturnsEmptyResults()
     {
         // Arrange
         var uri = new Uri(Constants.EmptyTestRepositoryUri);
@@ -66,7 +66,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void FetchManifestsAsync_NonExistentRepository_ReturnsEmptyResults()
+    public async Task FetchManifestsAsync_NonExistentRepository_ReturnsEmptyResults()
     {
         // Arrange
         var uri = new Uri(Constants.NonExistentTestRepositoryUri);
@@ -83,7 +83,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void FetchManifestsAsync_NullRepository_ReturnsEmptyResults()
+    public async Task FetchManifestsAsync_NullRepository_ReturnsEmptyResults()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
@@ -101,7 +101,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void FetchManifestsAsync_ManifestNotInCommitsCache_ManifestSkipped()
+    public async Task FetchManifestsAsync_ManifestNotInCommitsCache_ManifestSkipped()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
@@ -133,7 +133,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void FetchManifestsAsync_InvalidManifest_ManifestSkipped()
+    public async Task FetchManifestsAsync_InvalidManifest_ManifestSkipped()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);
@@ -165,7 +165,7 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void FetchManifestsAsync_SelectsBucketSubDirectoryIfExists_ReturnsManifestsFromSubDirectoryOnly()
+    public async Task FetchManifestsAsync_SelectsBucketSubDirectoryIfExists_ReturnsManifestsFromSubDirectoryOnly()
     {
         // Arrange
         var uri = new Uri(Constants.TestRepositoryUri);

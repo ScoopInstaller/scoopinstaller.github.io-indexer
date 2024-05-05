@@ -31,7 +31,7 @@ public class ManualBucketsSourceTests
     }
 
     [Fact]
-    public async void GetBucketsAsync_EmptyManualBuckets_ReturnsEmpty()
+    public async Task GetBucketsAsync_EmptyManualBuckets_ReturnsEmpty()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -46,7 +46,7 @@ public class ManualBucketsSourceTests
     }
 
     [Fact]
-    public async void GetBucketsAsync_ReturnsBuckets()
+    public async Task GetBucketsAsync_ReturnsBuckets()
     {
         // Arrange
         _bucketsOptions.ManualBuckets = new[] { Faker.CreateUri(), Faker.CreateUri() };

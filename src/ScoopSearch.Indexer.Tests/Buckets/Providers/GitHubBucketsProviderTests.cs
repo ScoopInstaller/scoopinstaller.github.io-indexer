@@ -41,7 +41,7 @@ public class GitHubBucketsProviderTests
     }
 
     [Fact]
-    public async void GetBucketAsync_ValidRepo_ReturnsBucket()
+    public async Task GetBucketAsync_ValidRepo_ReturnsBucket()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -59,7 +59,7 @@ public class GitHubBucketsProviderTests
     }
 
     [Fact]
-    public async void GetBucketAsync_InvalidRepo_ReturnsNull()
+    public async Task GetBucketAsync_InvalidRepo_ReturnsNull()
     {
         // Arrange
         var cancellationToken = new CancellationToken();

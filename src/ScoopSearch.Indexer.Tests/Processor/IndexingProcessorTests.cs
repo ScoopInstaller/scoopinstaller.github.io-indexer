@@ -34,7 +34,7 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void CreateIndexIfRequiredAsync_Succeeds()
+    public async Task CreateIndexIfRequiredAsync_Succeeds()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -48,7 +48,7 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
 
     [Theory]
     [MemberData(nameof(GetRunTestCases))]
-    public async void UpdateIndexWithManifestsAsync_IndexUpdated(
+    public async Task UpdateIndexWithManifestsAsync_IndexUpdated(
         ManifestInfo[] manifestsInIndex,
         int expectedManifestsToAddCount,
         int expectedManifestsToUpdateCount,
