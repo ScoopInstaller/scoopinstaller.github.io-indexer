@@ -19,6 +19,7 @@ public static class Faker
             .RuleFor(_ => _.NamePartial, (f, o) => o.Name)
             .RuleFor(_ => _.NameSuffix, (f, o) => o.Name)
             .RuleFor(_ => _.Description, f => f.Lorem.Sentences())
+            .RuleFor(_ => _.Notes, f => f.Lorem.Sentences())
             .RuleFor(_ => _.Homepage, f => f.Internet.Url())
             .RuleFor(_ => _.License, f => f.PickRandomParam("MIT", "BSD", "GPL", "Custom"))
             .RuleFor(_ => _.Version, f => f.System.Semver())

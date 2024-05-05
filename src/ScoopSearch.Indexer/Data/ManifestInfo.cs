@@ -42,9 +42,14 @@ public class ManifestInfo
     public string? NameSuffix { get; private set; }
 
     [SearchableField(AnalyzerName = LexicalAnalyzerName.Values.EnLucene)]
-    [JsonConverter(typeof(DescriptionConverter))]
+    [JsonConverter(typeof(MultiLineStringConverter))]
     [JsonInclude]
     public string? Description { get; private set; }
+
+    [SearchableField(AnalyzerName = LexicalAnalyzerName.Values.EnLucene)]
+    [JsonConverter(typeof(MultiLineStringConverter))]
+    [JsonInclude]
+    public string? Notes { get; private set; }
 
     [SearchableField(IsFilterable = true, IsSortable = true, IsFacetable = true, AnalyzerName = AzureSearchIndex.UrlAnalyzer)]
     [JsonInclude]
