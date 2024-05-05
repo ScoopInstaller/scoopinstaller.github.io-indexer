@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ScoopSearch.Indexer.Data.JsonConverter;
 
-internal class DescriptionConverter : JsonConverter<string?>
+internal class MultiLineStringConverter : JsonConverter<string?>
 {
     public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

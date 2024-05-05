@@ -101,6 +101,26 @@ public class ManifestInfoDeserializationTests
 
     [Theory]
     [InlineData("", null)]
+    [InlineData(@"""notes"": """"", "")]
+    [InlineData(@"""notes"": ""foo""", "foo")]
+    [InlineData(@"""notes"": [ ""foo"" ]", "foo")]
+    [InlineData(@"""notes"": [ ""foo"", ""bar"" ]", "foo bar")]
+    [InlineData(@"""notes"": [ ""foo"", """", ""bar"" ]", "foo \n bar")]
+    public void Deserialize_Notes_Succeeds(string jsonContent, string? expectedResult)
+    {
+        // Arrange
+        jsonContent = $"{{ {jsonContent} }}";
+
+        // Act
+        var result = ManifestInfo.Deserialize(jsonContent, "foo", new ManifestMetadata());
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Notes.Should().Be(expectedResult?.Replace("\n", Environment.NewLine));
+    }
+
+    [Theory]
+    [InlineData("", null)]
     [InlineData(@"""version"": """"", "")]
     [InlineData(@"""version"": ""v1""", "v1")]
     [InlineData(@"""version"": ""1.2.3""", "1.2.3")]
