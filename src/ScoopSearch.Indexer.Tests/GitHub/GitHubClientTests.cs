@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using ScoopSearch.Indexer.GitHub;
@@ -6,6 +7,7 @@ using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.GitHub;
 
+[SuppressMessage("Performance", "CA1861:Avoid constant arrays as arguments")]
 public class GitHubClientTests : IClassFixture<HostFixture>
 {
     private readonly GitHubClient _sut;
@@ -20,7 +22,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
 
     [Theory]
     [InlineData("http://example.com/foo/bar")]
-    public async void GetRepositoryAsync_InvalidRepo_ReturnsNull(string input)
+    public async Task GetRepositoryAsync_InvalidRepo_ReturnsNull(string input)
     {
         // Arrange
         var uri = new Uri(input);
@@ -36,7 +38,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
 
     [Theory]
     [InlineData("http://example.invalid/foo/bar")]
-    public async void GetRepositoryAsync_InvalidDomain_Throws(string input)
+    public async Task GetRepositoryAsync_InvalidDomain_Throws(string input)
     {
         // Arrange
         var uri = new Uri(input);
@@ -50,7 +52,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void GetRepositoryAsync_NonExistentRepo_ReturnsNull()
+    public async Task GetRepositoryAsync_NonExistentRepo_ReturnsNull()
     {
         // Arrange
         var uri = new Uri(Constants.NonExistentTestRepositoryUri);
@@ -64,7 +66,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     }
 
     [Fact]
-    public async void GetRepositoryAsync_RedirectedRepo_ReturnsNull()
+    public async Task GetRepositoryAsync_RedirectedRepo_ReturnsNull()
     {
         // Arrange
         var uri = new Uri("https://github.com/MCOfficer/scoop-nirsoft");
@@ -81,7 +83,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [Theory]
     [InlineData("https://github.com/ScoopInstaller/Main", 1000)]
     [InlineData("https://github.com/ScoopInstaller/Extras", 1500)]
-    public async void GetRepositoryAsync_ValidRepo_ReturnsGitHubRepo(string input, int expectedMinimumStars)
+    public async Task GetRepositoryAsync_ValidRepo_ReturnsGitHubRepo(string input, int expectedMinimumStars)
     {
         // Arrange
         var uri = new Uri(input);
@@ -100,7 +102,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [InlineData(new object[] { new string[0] })]
     [InlineData(new object[] { new[] { "" } })]
     [InlineData(new object[] { new[] { "&&==" } })]
-    public async void SearchRepositoriesAsync_InvalidQueryUrl_Throws(string[] input)
+    public async Task SearchRepositoriesAsync_InvalidQueryUrl_Throws(string[] input)
     {
         // Arrange + Act
         var cancellationToken = new CancellationToken();
@@ -122,7 +124,7 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [Theory]
     [InlineData(new object[] { new[] { "scoop-bucket", "created:>2023-01-01" } })]
     [InlineData(new object[] { new[] { "scoop+bucket", "created:>2023-01-01" } })]
-    public async void SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string[] input)
+    public async Task SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string[] input)
     {
         // Arrange + Act
         var cancellationToken = new CancellationToken();

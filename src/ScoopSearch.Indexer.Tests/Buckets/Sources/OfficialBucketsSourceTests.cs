@@ -39,7 +39,7 @@ public class OfficialBucketsSourceTests
     }
 
     [Fact]
-    public async void GetBucketsAsync_InvalidUri_ReturnsEmpty()
+    public async Task GetBucketsAsync_InvalidUri_ReturnsEmpty()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -56,7 +56,7 @@ public class OfficialBucketsSourceTests
     [Theory]
     [MemberData(nameof(GetBucketsAsyncErrorsTestCases))]
 #pragma warning disable xUnit1026
-    public async void GetBucketsAsync_InvalidStatusCodeSucceeds<TExpectedException>(HttpStatusCode statusCode, string content, TExpectedException _)
+    public async Task GetBucketsAsync_InvalidStatusCodeSucceeds<TExpectedException>(HttpStatusCode statusCode, string content, TExpectedException _)
 #pragma warning restore xUnit1026
         where TExpectedException : Exception
     {
@@ -80,16 +80,17 @@ public class OfficialBucketsSourceTests
         await result.Should().ThrowAsync<TExpectedException>();
     }
 
-    public static IEnumerable<object[]> GetBucketsAsyncErrorsTestCases()
-    {
-        yield return new object[] { HttpStatusCode.NotFound, $"url", new HttpRequestException() };
-        yield return new object[] { HttpStatusCode.OK, "", new JsonException() };
-        yield return new object[] { HttpStatusCode.OK, $"foo", new JsonException() };
-    }
+    public static TheoryData<HttpStatusCode, string, Exception> GetBucketsAsyncErrorsTestCases() =>
+        new()
+        {
+            { HttpStatusCode.NotFound, $"url", new HttpRequestException() },
+            { HttpStatusCode.OK, "", new JsonException() },
+            { HttpStatusCode.OK, $"foo", new JsonException() }
+        };
 
     [Theory]
     [MemberData(nameof(GetBucketsAsyncTestCases))]
-    public async void GetBucketsAsync_Succeeds(string content, string repositoryUri, bool isCompatible, bool expectedBucket)
+    public async Task GetBucketsAsync_Succeeds(string content, string repositoryUri, bool isCompatible, bool expectedBucket)
     {
         // Arrange
         _bucketsOptions.OfficialBucketsListUrl = Faker.CreateUri();
@@ -119,12 +120,15 @@ public class OfficialBucketsSourceTests
         }
     }
 
-    public static IEnumerable<object[]> GetBucketsAsyncTestCases()
+    public static TheoryData<string, string, bool, bool> GetBucketsAsyncTestCases()
     {
+        var data = new TheoryData<string, string, bool, bool>();
         var url = Faker.CreateUrl();
-        yield return new object[] { $@"{{ }}", url, false, false };
-        yield return new object[] { $@"{{ }}", url, true, false };
-        yield return new object[] { $@"{{ ""foo"": ""{url}"" }}", url, false, false };
-        yield return new object[] { $@"{{ ""foo"": ""{url}"" }}", url, true, true };
+        data.Add($@"{{ }}", url, false, false);
+        data.Add($@"{{ }}", url, true, false);
+        data.Add($@"{{ ""foo"": ""{url}"" }}", url, false, false);
+        data.Add($@"{{ ""foo"": ""{url}"" }}", url, true, true);
+
+        return data;
     }
 }

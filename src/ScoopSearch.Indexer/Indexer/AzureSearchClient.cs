@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Azure;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
@@ -8,6 +9,7 @@ using ScoopSearch.Indexer.Data;
 
 namespace ScoopSearch.Indexer.Indexer;
 
+[ExcludeFromCodeCoverage]
 internal class AzureSearchClient : ISearchClient
 {
     private const int BatchSize = 1000;

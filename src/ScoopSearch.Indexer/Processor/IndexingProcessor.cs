@@ -33,7 +33,7 @@ internal class IndexingProcessor : IIndexingProcessor
             .ToArrayAsync(cancellationToken: cancellationToken);
         _logger.LogInformation("{ManifestsCount} manifests to delete from the index (associated to {BucketsCount} non existing buckets)", manifestsToRemove.Length, deletedBuckets.Length);
 
-        if (manifestsToRemove.Any())
+        if (manifestsToRemove.Length > 0)
         {
             await _searchClient.DeleteManifestsAsync(manifestsToRemove, cancellationToken);
         }
@@ -56,7 +56,7 @@ internal class IndexingProcessor : IIndexingProcessor
     private async Task DeleteManifestsFromIndexAsync(ManifestInfo[] manifestsToDelete, CancellationToken cancellationToken)
     {
         _logger.LogInformation("{Count} manifests to delete from the index (not found in the existing buckets anymore)", manifestsToDelete.Length);
-        if (manifestsToDelete.Any())
+        if (manifestsToDelete.Length > 0)
         {
             manifestsToDelete
                 .GroupBy(_ => _.Metadata.Repository)
@@ -83,7 +83,7 @@ internal class IndexingProcessor : IIndexingProcessor
                 .ThenByDescending(_ => _.Metadata.RepositoryStars)
                 .ThenBy(_ => _.Metadata.Repository)
                 .ToArray();
-            var originalManifest = prioritizedManifests.First();
+            var originalManifest = prioritizedManifests[0];
 
             _logger.LogDebug("Duplicated manifests with hash {Hash} found in {Manifests}. Choosing {Manifest} as the original one",
                 duplicatedManifestsGroup.Key,
@@ -108,7 +108,7 @@ internal class IndexingProcessor : IIndexingProcessor
         _logger.LogInformation("{Count} manifests to update in the index", manifestsToUpdate.Length);
 
         var manifestsToAddOrUpdate = manifestsToAdd.Concat(manifestsToUpdate).ToArray();
-        if (manifestsToAddOrUpdate.Any())
+        if (manifestsToAddOrUpdate.Length > 0)
         {
             manifestsToAdd
                 .GroupBy(_ => _.Metadata.Repository)

@@ -27,7 +27,7 @@ public class GitHubBucketsSourceTests
     }
 
     [Fact]
-    public async void GetBucketsAsync_InvalidQueries_ReturnsEmpty()
+    public async Task GetBucketsAsync_InvalidQueries_ReturnsEmpty()
     {
         // Arrange
         var cancellationToken = new CancellationToken();
@@ -42,7 +42,7 @@ public class GitHubBucketsSourceTests
     }
 
     [Fact]
-    public async void GetBucketsAsync_Succeeds()
+    public async Task GetBucketsAsync_Succeeds()
     {
         // Arrange
         var cancellationToken = new CancellationToken();

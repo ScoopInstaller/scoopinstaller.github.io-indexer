@@ -50,10 +50,11 @@ internal static class HttpClientExtensions
         return @this.CreateClient(GitHubHttpClient);
     }
 
-    private static IAsyncPolicy<HttpResponseMessage> CreateGitHubRetryPolicy(IServiceProvider provider)
+    private static Polly.Retry.AsyncRetryPolicy<HttpResponseMessage> CreateGitHubRetryPolicy(IServiceProvider provider)
     {
         return Policy<HttpResponseMessage>
             .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
+            .OrTransientHttpError()
             .OrTransientHttpStatusCode()
             .WaitAndRetryAsync(5, (retryAttempt, result, _) =>
             {
@@ -65,8 +66,10 @@ internal static class HttpClientExtensions
                 }
 
                 provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
-                    "GitHub HttpClient failed with {StatusCode}. Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.",
+                    "GitHub HttpClient failed with code {StatusCode} and error {ErrorType} ({ErrorMessage}). Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.",
                     result.Result?.StatusCode,
+                    result.Exception?.GetType(),
+                    result.Exception?.Message,
                     delay,
                     retryAttempt);
 
