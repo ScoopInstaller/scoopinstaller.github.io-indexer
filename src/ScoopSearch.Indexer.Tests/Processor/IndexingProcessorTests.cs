@@ -86,8 +86,10 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         _searchClientMock.VerifyNoOtherCalls();
     }
 
-    public static IEnumerable<object[]> GetRunTestCases()
+    public static TheoryData<ManifestInfo[], int, int, ManifestInfo[], ManifestInfo[]> GetRunTestCases()
     {
+        var data = new TheoryData<ManifestInfo[], int, int, ManifestInfo[], ManifestInfo[]>();
+
         ManifestInfo[] manifestsInIndex;
         ManifestInfo[] expectedManifestsToAddOrUpdate;
         ManifestInfo[] expectedManifestsToRemove;
@@ -98,14 +100,14 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         manifestsInIndex = Array.Empty<ManifestInfo>();
         expectedManifestsToAddOrUpdate = fakeData.Select(_ => _.ManifestInfo.Generate()).ToArray();
         expectedManifestsToRemove = Array.Empty<ManifestInfo>();
-        yield return new object[] { manifestsInIndex, 5, 0, expectedManifestsToAddOrUpdate, expectedManifestsToRemove };
+        data.Add(manifestsInIndex, 5, 0, expectedManifestsToAddOrUpdate, expectedManifestsToRemove);
 
         // All manifests already in the index and up to date
         fakeData = CreateFakeData().ToArray();
         manifestsInIndex = fakeData.Select(_ => _.ManifestInfo.Generate()).ToArray();
         expectedManifestsToAddOrUpdate = Array.Empty<ManifestInfo>();
         expectedManifestsToRemove = Array.Empty<ManifestInfo>();
-        yield return new object[] { manifestsInIndex, 0, 0, expectedManifestsToAddOrUpdate, expectedManifestsToRemove };
+        data.Add(manifestsInIndex, 0, 0, expectedManifestsToAddOrUpdate, expectedManifestsToRemove);
 
         // All manifests already in the index and not all are up to date
         fakeData = CreateFakeData().ToArray();
@@ -115,7 +117,7 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         manifestsInIndex = fakeData.Select(_ => _.ManifestInfo.Generate()).ToArray();
         expectedManifestsToAddOrUpdate = new[] { manifestsInIndex[1], manifestsInIndex[2], manifestsInIndex[3] };
         expectedManifestsToRemove = Array.Empty<ManifestInfo>();
-        yield return new object[] { manifestsInIndex, 0, 3, expectedManifestsToAddOrUpdate, expectedManifestsToRemove };
+        data.Add(manifestsInIndex, 0, 3, expectedManifestsToAddOrUpdate, expectedManifestsToRemove);
 
         // Some manifests in the index but not on the repo anymore
         fakeData = CreateFakeData().ToArray();
@@ -125,7 +127,7 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
             .ToArray();
         expectedManifestsToAddOrUpdate = Array.Empty<ManifestInfo>();
         expectedManifestsToRemove = new[] { manifestsInIndex[5] };
-        yield return new object[] { manifestsInIndex, 0, 0, expectedManifestsToAddOrUpdate, expectedManifestsToRemove };
+        data.Add(manifestsInIndex, 0, 0, expectedManifestsToAddOrUpdate, expectedManifestsToRemove);
 
         // Mix everything
         fakeData = CreateFakeData().ToArray();
@@ -152,7 +154,9 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
         {
             otherManifestInfo
         };
-        yield return new object[] { manifestsInIndex, 1, 3, expectedManifestsToAddOrUpdate, expectedManifestsToRemove };
+        data.Add(manifestsInIndex, 1, 3, expectedManifestsToAddOrUpdate, expectedManifestsToRemove);
+
+        return data;
     }
 
     private static IEnumerable<(Faker<ManifestInfo> ManifestInfo, Faker<ManifestMetadata> ManifestMetadata)> CreateFakeData()

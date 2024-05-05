@@ -80,12 +80,14 @@ public class ManualBucketsListSourceTests
         await result.Should().ThrowAsync<TExpectedException>();
     }
 
-    public static IEnumerable<object[]> GetBucketsAsyncErrorsTestCases()
-    {
-        yield return new object[] { HttpStatusCode.NotFound, $"url", new HttpRequestException() };
-        yield return new object[] { HttpStatusCode.OK, "", new ReaderException(null) };
-        yield return new object[] { HttpStatusCode.OK, $"foo{Environment.NewLine}{Faker.CreateUrl()}", new MissingFieldException(null) };
-    }
+    public static TheoryData<HttpStatusCode, string, Exception> GetBucketsAsyncErrorsTestCases() =>
+        new()
+        {
+            { HttpStatusCode.NotFound, "url", new HttpRequestException() },
+            { HttpStatusCode.OK, "", new ReaderException(null) },
+            { HttpStatusCode.OK, $"foo{Environment.NewLine}{Faker.CreateUrl()}", new MissingFieldException(null) },
+        };
+    
 
     [Theory]
     [MemberData(nameof(GetBucketsAsyncTestCases))]
@@ -119,12 +121,15 @@ public class ManualBucketsListSourceTests
         }
     }
 
-    public static IEnumerable<object[]> GetBucketsAsyncTestCases()
+    public static TheoryData<string, string, bool, bool> GetBucketsAsyncTestCases()
     {
-        yield return new object[] { "url", Faker.CreateUrl(), true, false };
+        var data = new TheoryData<string, string, bool, bool>();
+        data.Add("url", Faker.CreateUrl(), true, false);
         var url = Faker.CreateUrl();
-        yield return new object[] { $"url{Environment.NewLine}{url}", url, false, false };
-        yield return new object[] { $"url{Environment.NewLine}{url}", url, true, true };
-        yield return new object[] { $"url{Environment.NewLine}{url}.git", url, true, true };
+        data.Add($"url{Environment.NewLine}{url}", url, false, false);
+        data.Add($"url{Environment.NewLine}{url}", url, true, true);
+        data.Add($"url{Environment.NewLine}{url}.git", url, true, true);
+
+        return data;
     }
 }

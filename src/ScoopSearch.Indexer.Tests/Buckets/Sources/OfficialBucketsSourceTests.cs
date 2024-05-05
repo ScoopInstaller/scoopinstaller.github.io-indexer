@@ -80,12 +80,13 @@ public class OfficialBucketsSourceTests
         await result.Should().ThrowAsync<TExpectedException>();
     }
 
-    public static IEnumerable<object[]> GetBucketsAsyncErrorsTestCases()
-    {
-        yield return new object[] { HttpStatusCode.NotFound, $"url", new HttpRequestException() };
-        yield return new object[] { HttpStatusCode.OK, "", new JsonException() };
-        yield return new object[] { HttpStatusCode.OK, $"foo", new JsonException() };
-    }
+    public static TheoryData<HttpStatusCode, string, Exception> GetBucketsAsyncErrorsTestCases() =>
+        new()
+        {
+            { HttpStatusCode.NotFound, $"url", new HttpRequestException() },
+            { HttpStatusCode.OK, "", new JsonException() },
+            { HttpStatusCode.OK, $"foo", new JsonException() }
+        };
 
     [Theory]
     [MemberData(nameof(GetBucketsAsyncTestCases))]
@@ -119,12 +120,15 @@ public class OfficialBucketsSourceTests
         }
     }
 
-    public static IEnumerable<object[]> GetBucketsAsyncTestCases()
+    public static TheoryData<string, string, bool, bool> GetBucketsAsyncTestCases()
     {
+        var data = new TheoryData<string, string, bool, bool>();
         var url = Faker.CreateUrl();
-        yield return new object[] { $@"{{ }}", url, false, false };
-        yield return new object[] { $@"{{ }}", url, true, false };
-        yield return new object[] { $@"{{ ""foo"": ""{url}"" }}", url, false, false };
-        yield return new object[] { $@"{{ ""foo"": ""{url}"" }}", url, true, true };
+        data.Add($@"{{ }}", url, false, false);
+        data.Add($@"{{ }}", url, true, false);
+        data.Add($@"{{ ""foo"": ""{url}"" }}", url, false, false);
+        data.Add($@"{{ ""foo"": ""{url}"" }}", url, true, true);
+
+        return data;
     }
 }
