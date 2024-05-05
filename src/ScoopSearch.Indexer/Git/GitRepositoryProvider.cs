@@ -85,7 +85,8 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
         {
             var remote = repository.Network.Remotes.Single();
 
-            var fetchOptions = CreateOptions<FetchOptions>(cancellationToken);
+            var fetchOptions = new FetchOptions();
+            ConfigureFetchOptionsCancellation(fetchOptions, cancellationToken);
 
             var refSpecs = remote.FetchRefSpecs.Select(_ => _.Specification);
             Commands.Fetch(repository, remote.Name, refSpecs, fetchOptions, null);
@@ -104,19 +105,16 @@ internal class GitRepositoryProvider : IGitRepositoryProvider
     {
         _logger.LogDebug("Cloning repository {Uri} in {RepositoryDirectory}", uri, repositoryDirectory);
 
-        var cloneOptions = CreateOptions<CloneOptions>(cancellationToken);
+        var cloneOptions = new CloneOptions();
+        ConfigureFetchOptionsCancellation(cloneOptions.FetchOptions, cancellationToken);
         cloneOptions.RecurseSubmodules = false;
         Repository.Clone(uri.AbsoluteUri, repositoryDirectory, cloneOptions);
     }
 
-    private T CreateOptions<T>(CancellationToken cancellationToken)
-        where T : FetchOptionsBase, new()
+    private void ConfigureFetchOptionsCancellation(FetchOptionsBase options, CancellationToken cancellationToken)
     {
-        var options = new T();
         options.OnProgress = _ => !cancellationToken.IsCancellationRequested;
         options.OnTransferProgress = _ => !cancellationToken.IsCancellationRequested;
-
-        return options;
     }
 
     private string GetGitExecutable()
