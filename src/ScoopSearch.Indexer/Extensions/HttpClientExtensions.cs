@@ -56,20 +56,30 @@ internal static class HttpClientExtensions
             .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
             .OrTransientHttpError()
             .OrTransientHttpStatusCode()
-            .WaitAndRetryAsync(5, (retryAttempt, result, _) =>
+            .WaitAndRetryAsync(5, (retryAttempt, response, _) =>
             {
+                var logger = provider.GetRequiredService<ILogger<HttpClient>>();
+                logger.LogWarning(
+                    "GitHub HttpClient failed to process request {Request} with result {Result} (Exception {ErrorType}).",
+                    response.Result?.RequestMessage,
+                    response.Result,
+                    response.Exception);
+                
+                if (response.Exception is HttpRequestException { HttpRequestError: HttpRequestError.NameResolutionError })
+                {
+                    return TimeSpan.Zero;
+                }
+
                 TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
-                if (result.Result?.StatusCode == HttpStatusCode.Forbidden && result.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+                if (response.Result?.StatusCode == HttpStatusCode.Forbidden &&
+                    response.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
                 {
                     var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
                     delay = rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
                 }
 
-                provider.GetRequiredService<ILogger<HttpClient>>().LogWarning(
-                    "GitHub HttpClient failed with code {StatusCode} and error {ErrorType} ({ErrorMessage}). Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.",
-                    result.Result?.StatusCode,
-                    result.Exception?.GetType(),
-                    result.Exception?.Message,
+                logger.LogWarning(
+                    "Waiting {TimeSpan} before next retry. Retry attempt {RetryCount}.",
                     delay,
                     retryAttempt);
 
