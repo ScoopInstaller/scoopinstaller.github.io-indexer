@@ -40,9 +40,9 @@ public static class LoggingExtensions
                 })
                 .WriteTo.File(new CompactJsonFormatter(), logFile)
                 .WriteTo.Logger(options => options
-                    .MinimumLevel.Information()
+                    // .MinimumLevel.Information()
                     // Exclude verbose HttpClient logs from the console
-                    .Filter.ByExcluding(_ => Matching.FromSource(typeof(HttpClient).FullName!)(_) && _.Level < LogEventLevel.Warning)
+                    // .Filter.ByExcluding(_ => Matching.FromSource(typeof(HttpClient).FullName!)(_) && _.Level < LogEventLevel.Warning)
                     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {ThreadId}] {Message:lj}{NewLine}"));
         });
     }
