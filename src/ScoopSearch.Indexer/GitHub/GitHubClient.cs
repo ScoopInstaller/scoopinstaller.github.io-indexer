@@ -1,5 +1,5 @@
+using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Extensions;
 
@@ -34,18 +34,14 @@ internal class GitHubClient : IGitHubClient
         }
 
         var getRepoUri = BuildUri("repos" + targetUri.PathAndQuery);
-        return await _client.GetStringAsync(getRepoUri, cancellationToken)
-            .ContinueWith(task =>
-            {
-                if (task.IsCompletedSuccessfully)
-                {
-                    return JsonSerializer.Deserialize<GitHubRepo>(task.Result);
-                }
-                else
-                {
-                    return null;
-                }
-            }, cancellationToken);
+        var response = await _client.GetAsync(getRepoUri, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<GitHubRepo>(cancellationToken);
+        }
+
+        _logger.LogDebug("{Uri} failed with {StatusCode}", getRepoUri, response.StatusCode);
+        return null;
     }
 
     private async Task<Uri?> GetTargetRepositoryAsync(Uri uri, CancellationToken cancellationToken)
@@ -99,8 +95,7 @@ internal class GitHubClient : IGitHubClient
 
     private async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
     {
-        return await _client.GetStringAsync(searchUri, cancellationToken)
-            .ContinueWith(task => JsonSerializer.Deserialize<GitHubSearchResults>(task.Result), cancellationToken);
+        return await _client.GetFromJsonAsync<GitHubSearchResults>(searchUri, cancellationToken);
     }
 
     private static Uri BuildUri(string path, Dictionary<string, object>? queryString = null)

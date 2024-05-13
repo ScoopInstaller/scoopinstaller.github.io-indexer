@@ -104,21 +104,14 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     [InlineData(new object[] { new[] { "&&==" } })]
     public async Task SearchRepositoriesAsync_InvalidQueryUrl_Throws(string[] input)
     {
-        // Arrange + Act
+        // Arrange
         var cancellationToken = new CancellationToken();
-        try
-        {
-            await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
-            Assert.Fail("Should have thrown");
-        }
-        catch (AggregateException ex)
-        {
-            // Assert
-            ex.InnerException.Should().BeOfType<HttpRequestException>();
-            return;
-        }
-
-        Assert.Fail("Should have thrown an AggregateException");
+        
+        // Act
+        var result = async () => await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
+        
+        // Assert
+        await result.Should().ThrowAsync<HttpRequestException>();
     }
 
     [Theory]
