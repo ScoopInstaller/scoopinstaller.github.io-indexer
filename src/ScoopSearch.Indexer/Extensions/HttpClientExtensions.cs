@@ -14,6 +14,8 @@ internal static class HttpClientExtensions
     private const string DefaultHttpClient = "Default";
     private const string GitHubHttpClient = "GitHub";
 
+    private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromMinutes(5); 
+
     public static void AddHttpClients(this IServiceCollection services)
     {
         services
@@ -36,6 +38,7 @@ internal static class HttpClientExtensions
                 serviceProvider.GetRequiredService<ILogger<HttpClient>>().LogWarning("GitHub Token is not defined in configuration.");
             }
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", gitHubOptions.Value.Token);
+            client.Timeout = HttpClientTimeout;
         })
         .AddPolicyHandler((provider, _) => CreateGitHubRetryPolicy(provider));
     }
