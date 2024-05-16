@@ -10,12 +10,12 @@ internal class GitHubClient : IGitHubClient
     private const string GitHubApiBaseUri = "https://api.github.com/";
     private const int ResultsPerPage = 100;
 
-    private readonly HttpClient _client;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitHubClient> _logger;
 
     public GitHubClient(IHttpClientFactory httpClientFactory, ILogger<GitHubClient> logger)
     {
-        _client = httpClientFactory.CreateGitHubClient();
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -34,7 +34,7 @@ internal class GitHubClient : IGitHubClient
         }
 
         var getRepoUri = BuildUri("repos" + targetUri.PathAndQuery);
-        var response = await _client.GetAsync(getRepoUri, cancellationToken);
+        var response = await _httpClientFactory.CreateGitHubClient().GetAsync(getRepoUri, cancellationToken);
         if (response.IsSuccessStatusCode)
         {
             return await response.Content.ReadFromJsonAsync<GitHubRepo>(cancellationToken);
@@ -48,7 +48,7 @@ internal class GitHubClient : IGitHubClient
     {
         // Validate uri (existing repository, follow redirections...)
         using var request = new HttpRequestMessage(HttpMethod.Head, uri);
-        using var response = await _client.SendAsync(request, cancellationToken);
+        using var response = await _httpClientFactory.CreateGitHubClient().SendAsync(request, cancellationToken);
 
         if (request.RequestUri != null)
         {
@@ -95,7 +95,7 @@ internal class GitHubClient : IGitHubClient
 
     private async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
     {
-        return await _client.GetFromJsonAsync<GitHubSearchResults>(searchUri, cancellationToken);
+        return await _httpClientFactory.CreateGitHubClient().GetFromJsonAsync<GitHubSearchResults>(searchUri, cancellationToken);
     }
 
     private static Uri BuildUri(string path, Dictionary<string, object>? queryString = null)
