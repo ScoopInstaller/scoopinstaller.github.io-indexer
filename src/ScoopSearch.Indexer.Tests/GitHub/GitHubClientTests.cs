@@ -115,8 +115,14 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     }
 
     [Theory]
-    [InlineData(new object[] { new[] { "scoop-bucket", "created:>2023-01-01" } })]
-    [InlineData(new object[] { new[] { "scoop+bucket", "created:>2023-01-01" } })]
+    [InlineData(new object[] { new[] { "scoop-bucket", "created:>=2025-01-01" } })]
+    [InlineData(new object[] { new[] { "scoop+bucket", "created:>=2025-01-01" } })]
+    [InlineData(new object[] { new[] { "scoop-bucket", "created:2023-01-01..2024-12-31" } })]
+    [InlineData(new object[] { new[] { "scoop+bucket", "created:2023-01-01..2024-12-31" } })]
+    [InlineData(new object[] { new[] { "scoop-bucket", "created:2020-01-01..2022-12-31" } })]
+    [InlineData(new object[] { new[] { "scoop+bucket", "created:2020-01-01..2022-12-31" } })]
+    [InlineData(new object[] { new[] { "scoop-bucket", "created:<2020-01-01" } })]
+    [InlineData(new object[] { new[] { "scoop+bucket", "created:<2020-01-01" } })]
     public async Task SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string[] input)
     {
         // Arrange + Act
