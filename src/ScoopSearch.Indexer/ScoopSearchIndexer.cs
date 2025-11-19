@@ -109,12 +109,12 @@ internal class ScoopSearchIndexer : IScoopSearchIndexer
                 return false;
             }
 
-            return x.Uri.AbsoluteUri.Equals(y.Uri.AbsoluteUri, StringComparison.InvariantCultureIgnoreCase);
+            return x.Uri.AbsoluteUri.Equals(y.Uri.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
         }
 
         public int GetHashCode(Bucket obj)
         {
-            return obj.Uri.AbsoluteUri.ToLowerInvariant().GetHashCode();
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Uri.AbsoluteUri);
         }
     }
 }
