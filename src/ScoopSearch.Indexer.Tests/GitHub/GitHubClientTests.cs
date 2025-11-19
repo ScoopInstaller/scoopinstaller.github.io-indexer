@@ -11,10 +11,9 @@ public class GitHubClientTests : IClassFixture<HostFixture>
 {
     private readonly GitHubClient _sut;
 
-    public GitHubClientTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
+    public GitHubClientTests(HostFixture hostFixture)
     {
-        hostFixture.Configure(testOutputHelper);
-        var logger = new XUnitLogger<GitHubClient>(testOutputHelper);
+        var logger = new XUnitLogger<GitHubClient>();
 
         _sut = new GitHubClient(hostFixture.Instance.Services.GetRequiredService<IHttpClientFactory>(), logger);
     }

@@ -21,13 +21,12 @@ public class FetchManifestsProcessorTests : IClassFixture<HostFixture>
     private readonly XUnitLogger<FetchManifestsProcessor> _logger;
     private readonly XUnitLogger<GitRepository> _gitRepositoryLogger;
 
-    public FetchManifestsProcessorTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
+    public FetchManifestsProcessorTests(HostFixture hostFixture)
     {
         _hostFixture = hostFixture;
-        _hostFixture.Configure(testOutputHelper);
 
-        _logger = new XUnitLogger<FetchManifestsProcessor>(testOutputHelper);
-        _gitRepositoryLogger = new XUnitLogger<GitRepository>(testOutputHelper);
+        _logger = new XUnitLogger<FetchManifestsProcessor>();
+        _gitRepositoryLogger = new XUnitLogger<GitRepository>();
     }
 
     [Fact]

@@ -17,11 +17,11 @@ public class ManualBucketsSourceTests
     private readonly XUnitLogger<ManualBucketsSource> _logger;
     private readonly ManualBucketsSource _sut;
 
-    public ManualBucketsSourceTests(ITestOutputHelper testOutputHelper)
+    public ManualBucketsSourceTests()
     {
         _bucketsProviderMock = new Mock<IBucketsProvider>();
         _bucketsOptions = new BucketsOptions();
-        _logger = new XUnitLogger<ManualBucketsSource>(testOutputHelper);
+        _logger = new XUnitLogger<ManualBucketsSource>();
 
         _sut = new ManualBucketsSource(
             new[] {_bucketsProviderMock.Object },

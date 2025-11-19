@@ -23,12 +23,12 @@ public class OfficialBucketsSourceTests
     private readonly XUnitLogger<OfficialBucketsSource> _logger;
     private readonly OfficialBucketsSource _sut;
 
-    public OfficialBucketsSourceTests(ITestOutputHelper testOutputHelper)
+    public OfficialBucketsSourceTests()
     {
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _bucketsProviderMock = new Mock<IBucketsProvider>();
         _bucketsOptions = new BucketsOptions();
-        _logger = new XUnitLogger<OfficialBucketsSource>(testOutputHelper);
+        _logger = new XUnitLogger<OfficialBucketsSource>();
 
         _sut = new OfficialBucketsSource(
             _httpClientFactoryMock.Object,

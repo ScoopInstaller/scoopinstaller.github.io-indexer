@@ -25,12 +25,12 @@ public class ManualBucketsListSourceTests
     private readonly XUnitLogger<ManualBucketsListSource> _logger;
     private readonly ManualBucketsListSource _sut;
 
-    public ManualBucketsListSourceTests(ITestOutputHelper testOutputHelper)
+    public ManualBucketsListSourceTests()
     {
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _bucketsProviderMock = new Mock<IBucketsProvider>();
         _bucketsOptions = new BucketsOptions();
-        _logger = new XUnitLogger<ManualBucketsListSource>(testOutputHelper);
+        _logger = new XUnitLogger<ManualBucketsListSource>();
 
         _sut = new ManualBucketsListSource(
             _httpClientFactoryMock.Object,

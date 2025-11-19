@@ -15,8 +15,6 @@ public class HostFixture : IDisposable
 
     private readonly Lazy<IHost> _lazyInstance;
 
-    private ITestOutputHelper? _testOutputHelper;
-
     public HostFixture()
     {
         _lazyInstance = new Lazy<IHost>(CreateHost);
@@ -32,18 +30,8 @@ public class HostFixture : IDisposable
         }
     }
 
-    public void Configure(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper;
-    }
-
     private IHost CreateHost()
     {
-        if (_testOutputHelper == null)
-        {
-            throw new InvalidOperationException("{nameof(Configure)} must be called before {nameof(CreateHost)}");
-        }
-
         var host = Host.CreateDefaultBuilder()
             .ConfigureServices(_ => _.RegisterScoopSearchIndexer())
             .ConfigureLogging((context, builder) =>
@@ -51,7 +39,7 @@ public class HostFixture : IDisposable
                 var loggerProviderMock = new Mock<ILoggerProvider>();
                 loggerProviderMock
                     .Setup(_ => _.CreateLogger(It.IsAny<string>()))
-                    .Returns<string>(loggerName => new XUnitLogger(loggerName, _testOutputHelper));
+                    .Returns<string>(loggerName => new XUnitLogger(loggerName));
 
                 builder.AddProvider(loggerProviderMock.Object);
                 builder.SetMinimumLevel(MinimumLogLevel);
