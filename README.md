@@ -11,7 +11,7 @@ This repository contains the Indexer used to build and maintain the Scoop applic
 The indexer runs every 2 hours and search for buckets across the whole [GitHub site](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L18-L25) + some additional [inclusions/exclusions](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/blob/main/src/ScoopSearch.Indexer/appsettings.json#L28-L40).
 
 ### Configuration to build and debug the Indexer
-- Install [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Install [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - Create an *Azure Search* service
   - Retrieve the name (in *Properties*) and use it for `ServiceUrl`
   - Retrieve the primary admin key (in *Keys*) and use it for `AdminApiKey`
