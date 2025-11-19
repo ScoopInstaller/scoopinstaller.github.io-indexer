@@ -5,7 +5,6 @@ using FluentAssertions.Extensions;
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Git;
 
@@ -15,9 +14,9 @@ public class GitRepositoryTests : IDisposable
     private readonly string _repositoriesDirectory;
     private readonly GitRepositoryProvider _provider;
 
-    public GitRepositoryTests(ITestOutputHelper testOutputHelper)
+    public GitRepositoryTests()
     {
-        _logger = new XUnitLogger<GitRepository>(testOutputHelper);
+        _logger = new XUnitLogger<GitRepository>();
 
         _repositoriesDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "repositoriesTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_repositoriesDirectory);

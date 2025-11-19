@@ -7,7 +7,6 @@ using ScoopSearch.Indexer.Buckets.Sources;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.GitHub;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Buckets.Sources;
 
@@ -18,11 +17,11 @@ public class GitHubBucketsSourceTests
     private readonly XUnitLogger<GitHubBucketsSource> _logger;
     private readonly GitHubBucketsSource _sut;
 
-    public GitHubBucketsSourceTests(ITestOutputHelper testOutputHelper)
+    public GitHubBucketsSourceTests()
     {
         _gitHubClientMock = new Mock<IGitHubClient>();
         _gitHubOptions = new GitHubOptions();
-        _logger = new XUnitLogger<GitHubBucketsSource>(testOutputHelper);
+        _logger = new XUnitLogger<GitHubBucketsSource>();
         _sut = new GitHubBucketsSource(_gitHubClientMock.Object, new OptionsWrapper<GitHubOptions>(_gitHubOptions), _logger);
     }
 

@@ -6,27 +6,22 @@ using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Indexer;
 using ScoopSearch.Indexer.Processor;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 using Faker = ScoopSearch.Indexer.Tests.Helpers.Faker;
 
 namespace ScoopSearch.Indexer.Tests.Processor;
 
 public class IndexingProcessorTests : IClassFixture<HostFixture>
 {
-    private readonly ITestOutputHelper _testOutputHelper;
     private readonly Mock<ISearchClient> _searchClientMock;
     private readonly Mock<ISearchIndex> _searchIndexMock;
     private readonly XUnitLogger<IndexingProcessor> _logger;
     private readonly IndexingProcessor _sut;
 
-    public IndexingProcessorTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
+    public IndexingProcessorTests()
     {
-        _testOutputHelper = testOutputHelper;
-        hostFixture.Configure(testOutputHelper);
-
         _searchClientMock = new Mock<ISearchClient>();
         _searchIndexMock = new Mock<ISearchIndex>();
-        _logger = new XUnitLogger<IndexingProcessor>(testOutputHelper);
+        _logger = new XUnitLogger<IndexingProcessor>();
         _sut = new IndexingProcessor(
             _searchClientMock.Object,
             _searchIndexMock.Object,
@@ -215,6 +210,6 @@ public class IndexingProcessorTests : IClassFixture<HostFixture>
     private IEnumerable<ManifestInfo> ManifestsMatcher(IEnumerable<ManifestInfo> expected)
     {
         return FluentExtensions.Matcher<IEnumerable<ManifestInfo>>(_ =>
-            _.Should().BeEquivalentTo(expected, options => options.Including(_ => _.Id), ""), _testOutputHelper);
+            _.Should().BeEquivalentTo(expected, options => options.Including(_ => _.Id), ""));
     }
 }

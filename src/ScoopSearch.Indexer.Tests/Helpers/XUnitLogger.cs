@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Helpers;
 
@@ -8,9 +7,9 @@ public class XUnitLogger : ILogger
 {
     private readonly ILogger _logger;
 
-    public XUnitLogger(string categoryName, ITestOutputHelper testOutputHelper)
+    public XUnitLogger(string categoryName)
     {
-        _logger = new XUnitLoggerMock<object>(testOutputHelper, categoryName).Object;
+        _logger = new XUnitLoggerMock<object>(categoryName).Object;
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
@@ -23,9 +22,9 @@ public class XUnitLogger : ILogger
 
 public class XUnitLogger<TCategoryName> : ILogger<TCategoryName>
 {
-    public XUnitLogger(ITestOutputHelper testOutputHelper)
+    public XUnitLogger()
     {
-        Mock = new XUnitLoggerMock<TCategoryName>(testOutputHelper);
+        Mock = new XUnitLoggerMock<TCategoryName>();
     }
 
     public Mock<ILogger<TCategoryName>> Mock { get; }

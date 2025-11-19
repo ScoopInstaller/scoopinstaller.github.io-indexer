@@ -8,7 +8,7 @@ env:
   OUTPUT_PATH: ${{ github.workspace }}/output
   APP_PATH: ${{ github.workspace }}/src/ScoopSearch.Indexer.Console/
   GitHub__Token: ${{ secrets.GITHUB_TOKEN }}
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
 
 jobs:
   main:

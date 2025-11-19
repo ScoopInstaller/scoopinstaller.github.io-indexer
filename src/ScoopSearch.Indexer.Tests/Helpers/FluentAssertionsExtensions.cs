@@ -1,19 +1,18 @@
 using System.Linq.Expressions;
 using Moq;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Helpers;
 
 public static class FluentExtensions
 {
-    public static TValue Matcher<TValue>(Action<TValue> action, ITestOutputHelper testOutputHelper)
+    public static TValue Matcher<TValue>(Action<TValue> action)
     {
         return Match.Create(
-            (Predicate<TValue>)(actual => Matcher(action, actual, testOutputHelper)),
-            (Expression<Func<TValue>>)(() => Matcher(action, testOutputHelper)));
+            (Predicate<TValue>)(actual => Matcher(action, actual)),
+            (Expression<Func<TValue>>)(() => Matcher(action)));
     }
 
-    private static bool Matcher<TValue>(Action<TValue> action, TValue actual, ITestOutputHelper testOutputHelper)
+    private static bool Matcher<TValue>(Action<TValue> action, TValue actual)
     {
         try
         {
@@ -22,8 +21,8 @@ public static class FluentExtensions
         }
         catch (Exception ex)
         {
-            testOutputHelper.WriteLine("Actual and expected of type {0} are not equal. Details:", typeof(TValue));
-            testOutputHelper.WriteLine(ex.ToString());
+            TestContext.Current.SendDiagnosticMessage("Actual and expected of type {0} are not equal. Details:", typeof(TValue));
+            TestContext.Current.SendDiagnosticMessage(ex.ToString());
             return false;
         }
     }

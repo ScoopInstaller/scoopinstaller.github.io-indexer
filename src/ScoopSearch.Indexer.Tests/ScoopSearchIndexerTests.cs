@@ -10,7 +10,6 @@ using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Processor;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests;
 
@@ -20,10 +19,8 @@ public class ScoopSearchIndexerTests : IClassFixture<HostFixture>
     private readonly XUnitLogger<ScoopSearchIndexer> _logger;
     private readonly ScoopSearchIndexer _sut;
 
-    public ScoopSearchIndexerTests(HostFixture hostFixture, ITestOutputHelper testOutputHelper)
+    public ScoopSearchIndexerTests(HostFixture hostFixture)
     {
-        hostFixture.Configure(testOutputHelper);
-
         _indexingProcessorMock = new Mock<IIndexingProcessor>();
 
         var fetchManifestsProcessorMock = new Mock<IFetchManifestsProcessor>();
@@ -31,7 +28,7 @@ public class ScoopSearchIndexerTests : IClassFixture<HostFixture>
             .Setup(x => x.FetchManifestsAsync(It.IsAny<Bucket>(), It.IsAny<CancellationToken>()))
             .Returns(AsyncEnumerable.Empty<ManifestInfo>());
 
-        _logger = new XUnitLogger<ScoopSearchIndexer>(testOutputHelper);
+        _logger = new XUnitLogger<ScoopSearchIndexer>();
         _sut = new ScoopSearchIndexer(
             hostFixture.Instance.Services.GetRequiredService<IEnumerable<IBucketsSource>>(),
             hostFixture.Instance.Services.GetRequiredService<IOfficialBucketsSource>(),

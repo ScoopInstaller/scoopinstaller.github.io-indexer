@@ -52,12 +52,12 @@ internal class ScoopSearchIndexer : IScoopSearchIndexer
             .ToArrayAsync(cancellationToken);
 
         var ignoredBuckets = _bucketsOptions.IgnoredBuckets?.Select(uri => uri.AbsoluteUri.ToLowerInvariant()).ToHashSet() ?? new HashSet<string>();
-        var buckets = _bucketsProviders
+        var buckets = _bucketsProviders.ToAsyncEnumerable()
             .Where(bucketSource => bucketSource is not IOfficialBucketsSource)
             .Select(provider => provider.GetBucketsAsync(cancellationToken))
             .Prepend(officialBuckets.ToAsyncEnumerable())
-            .Merge()
-            .Distinct(bucket => bucket.Uri.AbsoluteUri.ToLowerInvariant())
+            .SelectMany(x => x)
+            .Distinct(new BucketEqualityComparer())
             .Where(bucket => !ignoredBuckets.Contains(bucket.Uri.AbsoluteUri.ToLowerInvariant()));
 
         var officialBucketsHashSet = officialBuckets.Select(bucket => bucket.Uri).ToHashSet();
@@ -88,5 +88,33 @@ internal class ScoopSearchIndexer : IScoopSearchIndexer
         });
 
         return (allBuckets, allManifests);
+    }
+
+    private class BucketEqualityComparer : IEqualityComparer<Bucket>
+    {
+        public bool Equals(Bucket? x, Bucket? y)
+        {
+            if (ReferenceEquals(x, y))
+            {
+                return true;
+            }
+
+            if (x is null)
+            {
+                return false;
+            }
+
+            if (y is null)
+            {
+                return false;
+            }
+
+            return x.Uri.AbsoluteUri.Equals(y.Uri.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public int GetHashCode(Bucket obj)
+        {
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Uri.AbsoluteUri);
+        }
     }
 }

@@ -4,7 +4,6 @@ using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace ScoopSearch.Indexer.Tests.Git;
@@ -15,9 +14,9 @@ public class GitRepositoryFactoryTests : IDisposable
     private readonly string _repositoriesDirectory;
     private readonly GitRepositoryProvider _sut;
 
-    public GitRepositoryFactoryTests(ITestOutputHelper testOutputHelper)
+    public GitRepositoryFactoryTests()
     {
-        _logger = new XUnitLogger<GitRepository>(testOutputHelper);
+        _logger = new XUnitLogger<GitRepository>();
 
         _repositoriesDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "repositoriesTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_repositoriesDirectory);
