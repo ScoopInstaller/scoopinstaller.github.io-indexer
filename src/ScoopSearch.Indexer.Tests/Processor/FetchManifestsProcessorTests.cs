@@ -11,7 +11,6 @@ using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Manifest;
 using ScoopSearch.Indexer.Processor;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace ScoopSearch.Indexer.Tests.Processor;

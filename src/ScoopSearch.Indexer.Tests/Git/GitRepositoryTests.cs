@@ -5,7 +5,6 @@ using FluentAssertions.Extensions;
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Git;
 

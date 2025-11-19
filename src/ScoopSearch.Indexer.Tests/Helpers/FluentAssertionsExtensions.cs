@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Moq;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Helpers;
 

@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests;
 

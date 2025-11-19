@@ -6,7 +6,6 @@ using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Indexer;
 using ScoopSearch.Indexer.Processor;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 using Faker = ScoopSearch.Indexer.Tests.Helpers.Faker;
 
 namespace ScoopSearch.Indexer.Tests.Processor;

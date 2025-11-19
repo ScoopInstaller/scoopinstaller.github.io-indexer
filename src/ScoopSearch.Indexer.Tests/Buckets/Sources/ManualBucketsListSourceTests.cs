@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Net;
 using CsvHelper;
+using CsvHelper.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,7 +12,6 @@ using ScoopSearch.Indexer.Buckets.Providers;
 using ScoopSearch.Indexer.Buckets.Sources;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 using Faker = ScoopSearch.Indexer.Tests.Helpers.Faker;
 using MissingFieldException = CsvHelper.MissingFieldException;
 
@@ -84,8 +85,8 @@ public class ManualBucketsListSourceTests
         new()
         {
             { HttpStatusCode.NotFound, "url", new HttpRequestException() },
-            { HttpStatusCode.OK, "", new ReaderException(null) },
-            { HttpStatusCode.OK, $"foo{Environment.NewLine}{Faker.CreateUrl()}", new MissingFieldException(null) },
+            { HttpStatusCode.OK, "", new ReaderException(new CsvContext(new CsvConfiguration(CultureInfo.InvariantCulture))) },
+            { HttpStatusCode.OK, $"foo{Environment.NewLine}{Faker.CreateUrl()}", new MissingFieldException(new CsvContext(new CsvConfiguration(CultureInfo.InvariantCulture))) },
         };
     
 

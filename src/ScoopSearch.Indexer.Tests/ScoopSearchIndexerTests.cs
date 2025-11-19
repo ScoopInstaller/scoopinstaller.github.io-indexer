@@ -10,7 +10,6 @@ using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Data;
 using ScoopSearch.Indexer.Processor;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests;
 

@@ -4,7 +4,6 @@ using LibGit2Sharp;
 using Microsoft.Extensions.Logging;
 using ScoopSearch.Indexer.Git;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace ScoopSearch.Indexer.Tests.Git;

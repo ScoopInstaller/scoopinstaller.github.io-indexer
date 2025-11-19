@@ -3,7 +3,6 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using ScoopSearch.Indexer.GitHub;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.GitHub;
 

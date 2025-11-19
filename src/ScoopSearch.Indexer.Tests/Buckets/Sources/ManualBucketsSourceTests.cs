@@ -7,7 +7,6 @@ using ScoopSearch.Indexer.Buckets.Providers;
 using ScoopSearch.Indexer.Buckets.Sources;
 using ScoopSearch.Indexer.Configuration;
 using ScoopSearch.Indexer.Tests.Helpers;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Buckets.Sources;
 

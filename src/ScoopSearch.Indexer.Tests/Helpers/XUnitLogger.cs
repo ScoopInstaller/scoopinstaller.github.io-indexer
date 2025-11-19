@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit.Abstractions;
 
 namespace ScoopSearch.Indexer.Tests.Helpers;
 
