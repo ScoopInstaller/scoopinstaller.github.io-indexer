@@ -2,7 +2,7 @@
 # ScoopSearch Indexer
 
 [![Indexer workflow](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/actions/workflows/indexer.yml/badge.svg)](https://github.com/ScoopInstaller/scoopinstaller.github.io-indexer/actions/workflows/indexer.yml)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ScoopInstaller_ScoopInstaller.scoopinstaller.github.io-indexer&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ScoopInstaller_ScoopInstaller.AzureFunctions)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ScoopInstaller_ScoopInstaller.scoopinstaller.github.io-indexer&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ScoopInstaller_ScoopInstaller.scoopinstaller.github.io-indexer)
 
 
 This repository contains the Indexer used to build and maintain the Scoop applications index used by https://scoopinstaller.github.io/
