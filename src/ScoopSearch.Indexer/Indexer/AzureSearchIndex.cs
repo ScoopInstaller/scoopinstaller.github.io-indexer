@@ -24,6 +24,8 @@ internal class AzureSearchIndex : ISearchIndex
 
     private const string EdgeNGramTokenFilter = "EdgeNGramTokenFilter";
 
+    private const string DotReplacementCharFilter = "DotReplacementCharFilter";
+
     private static readonly string[] CorsAllowedHosts = { "*" };
 
     private readonly SearchIndexClient _client;
@@ -39,11 +41,12 @@ internal class AzureSearchIndex : ISearchIndex
     {
         var index = new SearchIndex(_indexName);
         index.Fields = BuildFields();
-        index.Analyzers.Add(BuildAnalyzer(StandardAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase));
-        index.Analyzers.Add(BuildAnalyzer(PrefixAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase, EdgeNGramTokenFilter));
-        index.Analyzers.Add(BuildAnalyzer(SuffixAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase, TokenFilterName.Reverse, EdgeNGramTokenFilter));
-        index.Analyzers.Add(BuildAnalyzer(ReverseAnalyzer, LexicalTokenizerName.Standard, TokenFilterName.Lowercase, TokenFilterName.Reverse));
-        index.Analyzers.Add(BuildAnalyzer(UrlAnalyzer, LexicalTokenizerName.UaxUrlEmail, TokenFilterName.Lowercase));
+        index.Analyzers.Add(BuildAnalyzer(StandardAnalyzer, LexicalTokenizerName.Standard, null, TokenFilterName.Lowercase));
+        index.Analyzers.Add(BuildAnalyzer(PrefixAnalyzer, LexicalTokenizerName.Standard, DotReplacementCharFilter, TokenFilterName.Lowercase, EdgeNGramTokenFilter));
+        index.Analyzers.Add(BuildAnalyzer(SuffixAnalyzer, LexicalTokenizerName.Standard, DotReplacementCharFilter, TokenFilterName.Lowercase, TokenFilterName.Reverse, EdgeNGramTokenFilter));
+        index.Analyzers.Add(BuildAnalyzer(ReverseAnalyzer, LexicalTokenizerName.Standard, DotReplacementCharFilter, TokenFilterName.Lowercase, TokenFilterName.Reverse));
+        index.Analyzers.Add(BuildAnalyzer(UrlAnalyzer, LexicalTokenizerName.UaxUrlEmail, null, TokenFilterName.Lowercase));
+        index.CharFilters.Add(BuildCharFilter());
         index.TokenFilters.Add(BuildTokenFilter());
         index.ScoringProfiles.Add(BuildScoringProfile());
         index.DefaultScoringProfile = ScoringProfile;
@@ -57,12 +60,23 @@ internal class AzureSearchIndex : ISearchIndex
         return new FieldBuilder().Build(typeof(ManifestInfo));
     }
 
-    private CustomAnalyzer BuildAnalyzer(string name, LexicalTokenizerName tokenizer, params TokenFilterName[] filters)
+    private CustomAnalyzer BuildAnalyzer(string name, LexicalTokenizerName tokenizer, string? charFilter, params TokenFilterName[] filters)
     {
         var analyzer = new CustomAnalyzer(name, tokenizer);
+
+        if (charFilter != null)
+        {
+            analyzer.CharFilters.Add(charFilter);
+        }
+
         filters.ForEach(_ => analyzer.TokenFilters.Add(_));
 
         return analyzer;
+    }
+
+    private CharFilter BuildCharFilter()
+    {
+        return new PatternReplaceCharFilter(DotReplacementCharFilter, "\\.", " ");
     }
 
     private TokenFilter BuildTokenFilter()
