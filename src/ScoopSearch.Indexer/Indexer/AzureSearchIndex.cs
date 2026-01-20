@@ -94,9 +94,9 @@ internal class AzureSearchIndex : ISearchIndex
         var textWeights = new TextWeights(
             new Dictionary<string, double>
             {
-                { ManifestInfo.NamePartialField, 40 },
+                { ManifestInfo.NamePartialField, 50 },
                 { ManifestInfo.NameSuffixField, 40 },
-                { ManifestInfo.DescriptionField, 20 }
+                { ManifestInfo.DescriptionField, 10 }
             }
         );
 
