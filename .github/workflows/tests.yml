@@ -19,6 +19,8 @@ jobs:
   tests:
     name: Tests ⚙️🧪
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
     - name: Checkout
@@ -40,11 +42,12 @@ jobs:
       run: dotnet restore ${{ env.TESTS_PATH }}
 
     - name: Start SonarScanner
+      if: env.SONAR_TOKEN
       run: >
         dotnet sonarscanner begin
         /o:"scoopinstaller"
         /k:"ScoopInstaller_ScoopInstaller.scoopinstaller.github.io-indexer"
-        /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        /d:sonar.token="${{ env.SONAR_TOKEN }}"
         /d:sonar.host.url="https://sonarcloud.io"
         /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
 
@@ -56,9 +59,10 @@ jobs:
         -o "coverage.xml"
 
     - name: Stop SonarScanner and send analysis
+      if: env.SONAR_TOKEN
       run: |
         export JAVA_HOME=$JAVA_HOME_17_X64 # Force JAVA_HOME environment variable (Version 11 or 17 is required by SonarScanner)
-        dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        dotnet sonarscanner end /d:sonar.token="${{ env.SONAR_TOKEN }}"
 
   keepalive:
     name: Keepalive Workflow
