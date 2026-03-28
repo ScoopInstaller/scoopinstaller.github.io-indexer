@@ -89,7 +89,7 @@ public class OfficialBucketsSourceTests
 
     [Theory]
     [MemberData(nameof(GetBucketsAsyncTestCases))]
-    public async Task GetBucketsAsync_Succeeds(string content, string repositoryUri, bool isCompatible, bool expectedBucket)
+    public async Task GetBucketsAsync_Succeeds(string content, string repositoryUri, bool isCompatible, bool expectedBucket, string? expectedName = null)
     {
         // Arrange
         _bucketsOptions.OfficialBucketsListUrl = Faker.CreateUri();
@@ -115,18 +115,19 @@ public class OfficialBucketsSourceTests
         result.Should().HaveCount(expectedBucket ? 1 : 0);
         if (expectedBucket)
         {
-            result.Should().BeEquivalentTo(new[] { bucket });
+            var expectedBucketObj = new Bucket(new Uri(repositoryUri), 123, expectedName);
+            result.Should().BeEquivalentTo(new[] { expectedBucketObj });
         }
     }
 
-    public static TheoryData<string, string, bool, bool> GetBucketsAsyncTestCases()
+    public static TheoryData<string, string, bool, bool, string?> GetBucketsAsyncTestCases()
     {
-        var data = new TheoryData<string, string, bool, bool>();
+        var data = new TheoryData<string, string, bool, bool, string?>();
         var url = Faker.CreateUrl();
-        data.Add($@"{{ }}", url, false, false);
-        data.Add($@"{{ }}", url, true, false);
-        data.Add($@"{{ ""foo"": ""{url}"" }}", url, false, false);
-        data.Add($@"{{ ""foo"": ""{url}"" }}", url, true, true);
+        data.Add($@"{{ }}", url, false, false, null);
+        data.Add($@"{{ }}", url, true, false, null);
+        data.Add($@"{{ ""foo"": ""{url}"" }}", url, false, false, null);
+        data.Add($@"{{ ""foo"": ""{url}"" }}", url, true, true, "foo");
 
         return data;
     }

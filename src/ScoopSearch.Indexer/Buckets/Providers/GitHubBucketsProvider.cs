@@ -18,7 +18,7 @@ internal class GitHubBucketsProvider : IBucketsProvider
         var result = await _gitHubClient.GetRepositoryAsync(uri, cancellationToken);
         if (result is not null)
         {
-            return new Bucket(result.HtmlUri, result.Stars);
+            return new Bucket(result.HtmlUri, result.Stars, result.Name);
         }
 
         return null;

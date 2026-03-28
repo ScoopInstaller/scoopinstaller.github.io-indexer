@@ -69,11 +69,16 @@ public class ManifestMetadata
     [JsonInclude]
     public string? DuplicateOf { get; private set; }
 
-    public void SetRepositoryMetadata(bool officialRepository, int repositoryStars)
+    [SearchableField(IsFilterable = true, IsFacetable = true, AnalyzerName = AzureSearchIndex.StandardAnalyzer)]
+    [JsonInclude]
+    public string? OfficialRepositoryName { get; private set; }
+
+    public void SetRepositoryMetadata(bool officialRepository, int repositoryStars, string? officialRepositoryName = null)
     {
         OfficialRepository = officialRepository;
         OfficialRepositoryNumber = OfficialRepository.GetValueOrDefault() ? 1 : 0;
         RepositoryStars = repositoryStars;
+        OfficialRepositoryName = (officialRepository && !string.IsNullOrEmpty(officialRepositoryName)) ? officialRepositoryName : null;
     }
 
     public void SetDuplicateOf(string originalId)

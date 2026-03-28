@@ -34,7 +34,7 @@ internal class GitHubBucketsSource : IBucketsSource
         {
             await foreach(var repo in _gitHubClient.SearchRepositoriesAsync(query, cancellationToken))
             {
-                yield return new Bucket(repo.HtmlUri, repo.Stars);
+                yield return new Bucket(repo.HtmlUri, repo.Stars, repo.Name);
             }
         }
     }

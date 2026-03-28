@@ -37,17 +37,18 @@ internal class OfficialBucketsSource : IOfficialBucketsSource
 
         _logger.LogInformation("Retrieving official buckets from {Uri}", _bucketOptions.OfficialBucketsListUrl);
 
-        await foreach (var uri in GetBucketsFromJsonAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken))
+        await foreach (var (name, uri) in GetBucketsFromJsonAsync(_bucketOptions.OfficialBucketsListUrl, cancellationToken))
         {
             var provider = _bucketsProviders.FirstOrDefault(provider => provider.IsCompatible(uri));
             if (provider is not null && await provider.GetBucketAsync(uri, cancellationToken) is { } bucket)
             {
-                yield return bucket;
+                // Create a new bucket with the official name
+                yield return new Bucket(bucket.Uri, bucket.Stars, name);
             }
         }
     }
 
-    private async IAsyncEnumerable<Uri> GetBucketsFromJsonAsync(Uri uri, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<(string Name, Uri Uri)> GetBucketsFromJsonAsync(Uri uri, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var contentJson = await _httpClientFactory.CreateDefaultClient().GetStreamAsync(uri, cancellationToken);
         var officialBuckets = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(contentJson, cancellationToken: cancellationToken);
@@ -59,7 +60,7 @@ internal class OfficialBucketsSource : IOfficialBucketsSource
 
         foreach (var officialBucket in officialBuckets)
         {
-            yield return new Uri(officialBucket.Value);
+            yield return (officialBucket.Key, new Uri(officialBucket.Value));
         }
     }
 }

@@ -70,7 +70,7 @@ internal class ScoopSearchIndexer : IScoopSearchIndexer
             var isOfficialBuckets = officialBucketsHashSet.Contains(bucket.Uri);
             await foreach (var manifest in _fetchManifestsProcessor.FetchManifestsAsync(bucket, token))
             {
-                manifest.Metadata.SetRepositoryMetadata(isOfficialBuckets, bucket.Stars);
+                manifest.Metadata.SetRepositoryMetadata(isOfficialBuckets, bucket.Stars, bucket.Name);
                 allManifests.Add(manifest);
                 manifestsCount++;
             }

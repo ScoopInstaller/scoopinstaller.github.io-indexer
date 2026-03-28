@@ -9,4 +9,7 @@ public class GitHubRepo
 
     [JsonInclude, JsonPropertyName("stargazers_count")]
     public int Stars { get; private set; }
+
+    [JsonInclude, JsonPropertyName("name")]
+    public string? Name { get; private set; }
 }

@@ -37,6 +37,7 @@ public static class Faker
             .RuleFor(_ => _.OfficialRepositoryNumber, f => f.Random.Int(0, 1))
             .RuleFor(_ => _.Repository, f => f.Internet.UrlRootedPath())
             .RuleFor(_ => _.OfficialRepository, f => f.Random.Bool())
+            .RuleFor(_ => _.OfficialRepositoryName, (f, o) => o.OfficialRepository == true ? f.Lorem.Word() : null)
             .RuleFor(_ => _.BranchName, f => f.Lorem.Word())
             .RuleFor(_ => _.FilePath, f => f.System.FilePath())
             .RuleFor(_ => _.Committed, f => f.Date.RecentOffset())
@@ -50,7 +51,8 @@ public static class Faker
         var faker = new Faker<GitHubRepo>()
             .StrictMode(true)
             .RuleFor(_ => _.HtmlUri, f => new Uri(f.Internet.Url()))
-            .RuleFor(_ => _.Stars, f => f.Random.Int(0, 1000));
+            .RuleFor(_ => _.Stars, f => f.Random.Int(0, 1000))
+            .RuleFor(_ => _.Name, f => f.Lorem.Word());
 
         return faker;
     }
