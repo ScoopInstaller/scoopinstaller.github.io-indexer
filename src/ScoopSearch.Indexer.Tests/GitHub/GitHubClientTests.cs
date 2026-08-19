@@ -113,18 +113,8 @@ public class GitHubClientTests : IClassFixture<HostFixture>
     }
 
     [Theory]
-    [InlineData(new object[] { new[] { "scoop-bucket", "created:>=2026-05-16" } })]
-    [InlineData(new object[] { new[] { "scoop+bucket", "created:>=2026-05-16" } })]
-    [InlineData(new object[] { new[] { "scoop-bucket", "created:2026-01-01..2026-05-15" } })]
-    [InlineData(new object[] { new[] { "scoop+bucket", "created:2026-01-01..2026-05-15" } })]
-    [InlineData(new object[] { new[] { "scoop-bucket", "created:2025-01-01..2025-12-31" } })]
-    [InlineData(new object[] { new[] { "scoop+bucket", "created:2025-01-01..2025-12-31" } })]
-    [InlineData(new object[] { new[] { "scoop-bucket", "created:2023-01-01..2024-12-31" } })]
-    [InlineData(new object[] { new[] { "scoop+bucket", "created:2023-01-01..2024-12-31" } })]
-    [InlineData(new object[] { new[] { "scoop-bucket", "created:2020-01-01..2022-12-31" } })]
-    [InlineData(new object[] { new[] { "scoop+bucket", "created:2020-01-01..2022-12-31" } })]
-    [InlineData(new object[] { new[] { "scoop-bucket", "created:<2020-01-01" } })]
-    [InlineData(new object[] { new[] { "scoop+bucket", "created:<2020-01-01" } })]
+    [InlineData(new object[] { new[] { "topic:scoop-bucket" } })]
+    [InlineData(new object[] { new[] { "scoop+bucket" } })]
     public async Task SearchRepositoriesAsync_ValidQuery_ReturnsSearchResults(string[] input)
     {
         // Arrange + Act
@@ -133,8 +123,25 @@ public class GitHubClientTests : IClassFixture<HostFixture>
 
         // Assert
         result.Should().NotBeNull();
-        result.Length.Should()
-            .BeGreaterThan(0, "because there should be at least 1 result")
-            .And.BeLessThan(900, "because there should be less than 900 results. If it returns more than 900, the date condition should be updated");
+        result.Length.Should().BeGreaterThan(0, "because there should be at least 1 result");
+        result.Select(_ => _.HtmlUri).Should().OnlyHaveUniqueItems("because the disjoint date-range splitting must not return the same repository twice");
+    }
+
+    [Fact]
+    public async Task SearchRepositoriesAsync_QueryExceedingApiLimit_SplitsByDateRangeAndReturnsAllResults()
+    {
+        // Arrange
+        var cancellationToken = new CancellationToken();
+        // 'scoop-bucket' matches far more than the 1000 results a single GitHub search API query
+        // returns, so this exercises the automatic recursive splitting by creation-date range.
+        var input = new[] { "scoop-bucket" };
+
+        // Act
+        var result = await _sut.SearchRepositoriesAsync(input, cancellationToken).ToArrayAsync(cancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Length.Should().BeGreaterThan(1000, "because the query matches more repositories than a single GitHub search API query can return");
+        result.Select(_ => _.HtmlUri).Should().OnlyHaveUniqueItems("because the disjoint date-range splitting must not return the same repository twice");
     }
 }

@@ -10,6 +10,10 @@ internal class GitHubClient : IGitHubClient
     private const string GitHubApiBaseUri = "https://api.github.com/";
     private const int ResultsPerPage = 100;
 
+    // The GitHub Search API never returns more than 1000 results for a single query, even though
+    // total_count reflects the real total. Queries that exceed this are split by creation date.
+    private const int MaxSearchResults = 1000;
+
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitHubClient> _logger;
 
@@ -63,15 +67,30 @@ internal class GitHubClient : IGitHubClient
         return null;
     }
 
-    public async IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string[] query, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string[] query, CancellationToken cancellationToken)
     {
+        // A single query can match more than the MaxSearchResults the Search API is willing to return.
+        // The repositories endpoint cannot sort by creation date, so we cannot page past the cap with a
+        // cursor. Instead we recursively split the query into disjoint creation-date ranges until each
+        // range holds at most MaxSearchResults. GitHub launched in 2008, so no repository predates it.
+        var from = new DateOnly(2008, 1, 1);
+        var to = DateOnly.FromDateTime(DateTime.UtcNow);
+        return SearchRepositoriesByDateRangeAsync(query, from, to, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<GitHubRepo> SearchRepositoriesByDateRangeAsync(string[] query, DateOnly from, DateOnly to, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var rangeQuery = query.Append($"created:{from:yyyy-MM-dd}..{to:yyyy-MM-dd}").ToArray();
+
         int page = 1;
         int? totalPages = null;
+        var totalCount = 0;
+        var splitRange = false;
         do
         {
             var queryString = new Dictionary<string, object>()
             {
-                { "q", string.Join('+', query) },
+                { "q", string.Join('+', rangeQuery) },
                 { "per_page", ResultsPerPage },
                 { "page", page },
                 { "sort", "updated" }
@@ -83,14 +102,44 @@ internal class GitHubClient : IGitHubClient
                 break;
             }
 
+            totalCount = results.TotalCount;
+            // Too many results for this range: split the date range instead of paging past the cap.
+            if (totalCount > MaxSearchResults && from < to)
+            {
+                splitRange = true;
+                break;
+            }
+
             _logger.LogDebug("Found {Count} repositories for query {Query}", results.Items.Length, searchReposUri);
             foreach (var gitHubRepo in results.Items)
             {
                 yield return gitHubRepo;
             }
 
-            totalPages ??= (int)Math.Ceiling(results.TotalCount / (double)ResultsPerPage);
+            totalPages ??= (int)Math.Ceiling(Math.Min(totalCount, MaxSearchResults) / (double)ResultsPerPage);
         } while (page++ < totalPages);
+
+        if (splitRange)
+        {
+            // Split [from, to] into two disjoint halves and recurse. Ranges never overlap, so results
+            // are unique by construction and require no deduplication.
+            var mid = DateOnly.FromDayNumber(from.DayNumber + (to.DayNumber - from.DayNumber) / 2);
+            await foreach (var gitHubRepo in SearchRepositoriesByDateRangeAsync(query, from, mid, cancellationToken))
+            {
+                yield return gitHubRepo;
+            }
+
+            await foreach (var gitHubRepo in SearchRepositoriesByDateRangeAsync(query, mid.AddDays(1), to, cancellationToken))
+            {
+                yield return gitHubRepo;
+            }
+        }
+        else if (totalCount > MaxSearchResults)
+        {
+            // from == to: a single day holds more than the cap, so it cannot be split further and only
+            // the first MaxSearchResults results are reachable.
+            _logger.LogWarning("More than {Max} repositories created on {Date} for query {Query}; some results may be missing", MaxSearchResults, from, string.Join('+', query));
+        }
     }
 
     private async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
