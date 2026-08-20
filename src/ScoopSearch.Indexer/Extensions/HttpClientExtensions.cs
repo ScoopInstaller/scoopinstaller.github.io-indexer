@@ -56,7 +56,7 @@ internal static class HttpClientExtensions
     private static Polly.Retry.AsyncRetryPolicy<HttpResponseMessage> CreateGitHubRetryPolicy(IServiceProvider provider)
     {
         return Policy<HttpResponseMessage>
-            .HandleResult(_ => _.StatusCode == HttpStatusCode.Forbidden)
+            .HandleResult(_ => _.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests)
             .OrTransientHttpError()
             .OrTransientHttpStatusCode()
             .WaitAndRetryAsync(5, (retryAttempt, response, _) =>
@@ -67,18 +67,33 @@ internal static class HttpClientExtensions
                     response.Result?.RequestMessage,
                     response.Result,
                     response.Exception);
-                
+
                 if (response.Exception is HttpRequestException { HttpRequestError: HttpRequestError.NameResolutionError })
                 {
                     return TimeSpan.Zero;
                 }
 
                 TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
-                if (response.Result?.StatusCode == HttpStatusCode.Forbidden &&
-                    response.Result.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+
+                // Secondary (abuse) rate limits are signalled with a Retry-After header. Primary rate
+                // limits expose the reset time via X-RateLimit-Reset. Honor whichever the response
+                // provides, and wait for the longest of the applicable hints.
+                var retryAfter = response.Result?.Headers.RetryAfter;
+                if (retryAfter?.Delta is { } retryAfterDelta)
+                {
+                    delay = Max(delay, retryAfterDelta);
+                }
+                else if (retryAfter?.Date is { } retryAfterDate)
+                {
+                    delay = Max(delay, retryAfterDate - DateTimeOffset.UtcNow);
+                }
+
+                if (response.Result?.Headers.TryGetValues("X-RateLimit-Reset", out var values) == true &&
+                    response.Result.Headers.TryGetValues("X-RateLimit-Remaining", out var remaining) &&
+                    Convert.ToInt32(remaining.Single()) == 0)
                 {
                     var rateLimitReset = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(values.Single()));
-                    delay = rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1);
+                    delay = Max(delay, rateLimitReset - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(1));
                 }
 
                 logger.LogWarning(
@@ -89,5 +104,7 @@ internal static class HttpClientExtensions
                 return delay;
             }, (_, _, _, _) => Task.CompletedTask);
     }
+
+    private static TimeSpan Max(TimeSpan a, TimeSpan b) => a > b ? a : b;
 }
 
