@@ -110,7 +110,10 @@ internal class GitHubClient : IGitHubClient
 
             totalCount = results.TotalCount;
             // Too many results for this range: split the date range instead of paging past the cap.
-            if (totalCount > MaxSearchResults && isSplittable)
+            // The decision is made on the first page only, before any result is yielded. Re-evaluating
+            // it on later pages would, if the live count grew past the cap mid-pagination, restart the
+            // whole range and yield the already-returned repositories again.
+            if (page == 1 && totalCount > MaxSearchResults && isSplittable)
             {
                 splitRange = true;
                 break;
@@ -127,10 +130,12 @@ internal class GitHubClient : IGitHubClient
 
         if (splitRange)
         {
-            // Establish concrete bounds the first time we split (GitHub launched in 2008, so no
-            // repository predates it), then split [from, to] into two disjoint halves and recurse.
-            // Ranges never overlap, so results are unique by construction and need no deduplication.
-            var lower = from ?? new DateOnly(2008, 1, 1);
+            // Establish concrete bounds the first time we split, then split [from, to] into two
+            // disjoint halves and recurse. Ranges never overlap, so results are unique by construction
+            // and need no deduplication. GitHub's earliest repositories date back to 2007 (e.g.
+            // mojombo/grit, created 2007-10-29), so the lower bound must cover them to avoid dropping
+            // repositories that the unsplit query would have returned.
+            var lower = from ?? new DateOnly(2007, 1, 1);
             var upper = to ?? DateOnly.FromDateTime(DateTime.UtcNow);
             var mid = DateOnly.FromDayNumber(lower.DayNumber + (upper.DayNumber - lower.DayNumber) / 2);
             await foreach (var gitHubRepo in SearchRepositoriesByDateRangeAsync(query, lower, mid, cancellationToken))
