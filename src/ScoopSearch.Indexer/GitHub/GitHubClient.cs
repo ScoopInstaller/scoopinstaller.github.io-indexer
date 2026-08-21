@@ -10,6 +10,10 @@ internal class GitHubClient : IGitHubClient
     private const string GitHubApiBaseUri = "https://api.github.com/";
     private const int ResultsPerPage = 100;
 
+    // The GitHub Search API never returns more than 1000 results for a single query, even though
+    // total_count reflects the real total. Queries that exceed this are split by creation date.
+    private const int MaxSearchResults = 1000;
+
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitHubClient> _logger;
 
@@ -63,34 +67,104 @@ internal class GitHubClient : IGitHubClient
         return null;
     }
 
-    public async IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string[] query, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IAsyncEnumerable<GitHubRepo> SearchRepositoriesAsync(string[] query, CancellationToken cancellationToken)
     {
-        int page = 1;
-        int? totalPages = null;
-        do
-        {
-            var queryString = new Dictionary<string, object>()
-            {
-                { "q", string.Join('+', query) },
-                { "per_page", ResultsPerPage },
-                { "page", page },
-                { "sort", "updated" }
-            };
-            var searchReposUri = BuildUri("/search/repositories", queryString);
-            var results = await GetSearchResultsAsync(searchReposUri, cancellationToken);
-            if (results == null)
-            {
-                break;
-            }
+        // The query is issued as-is first (no date filter). Only if it matches more than the
+        // MaxSearchResults the Search API is willing to return do we split it by creation date, because
+        // the repositories endpoint cannot sort by creation date and therefore cannot page past the cap
+        // with a cursor. Issuing the query unmodified keeps small queries cheap and preserves the API's
+        // validation errors for invalid queries (which would otherwise become a valid "match everything"
+        // query once a "created:" range is appended).
+        return SearchRepositoriesByDateRangeAsync(query, null, null, cancellationToken);
+    }
 
-            _logger.LogDebug("Found {Count} repositories for query {Query}", results.Items.Length, searchReposUri);
-            foreach (var gitHubRepo in results.Items)
+    private async IAsyncEnumerable<GitHubRepo> SearchRepositoriesByDateRangeAsync(string[] query, DateOnly? from, DateOnly? to, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var rangeQuery = BuildRangeQuery(query, from, to);
+
+        // The split decision is taken from the first page only, before any result is yielded, so a
+        // live count that grows past the cap mid-pagination cannot restart the range and yield the
+        // already-returned repositories again.
+        var firstPage = await GetSearchResultsAsync(BuildSearchUri(rangeQuery, 1), cancellationToken);
+        if (firstPage == null)
+        {
+            yield break;
+        }
+
+        // A single day is the smallest range we can produce, so a range is only splittable while it
+        // still spans more than one day (or has not been bounded yet).
+        var isSplittable = from is null || to is null || from < to;
+        if (firstPage.TotalCount > MaxSearchResults && isSplittable)
+        {
+            await foreach (var gitHubRepo in SplitAndSearchByDateRangeAsync(query, from, to, cancellationToken))
             {
                 yield return gitHubRepo;
             }
 
-            totalPages ??= (int)Math.Ceiling(results.TotalCount / (double)ResultsPerPage);
-        } while (page++ < totalPages);
+            yield break;
+        }
+
+        if (firstPage.TotalCount > MaxSearchResults)
+        {
+            // from == to: a single day holds more than the cap, so it cannot be split further and only
+            // the first MaxSearchResults results are reachable.
+            _logger.LogWarning("More than {Max} repositories created on {Date} for query {Query}; some results may be missing", MaxSearchResults, from, string.Join('+', rangeQuery));
+        }
+
+        var totalPages = (int)Math.Ceiling(Math.Min(firstPage.TotalCount, MaxSearchResults) / (double)ResultsPerPage);
+        for (var page = 1; page <= totalPages; page++)
+        {
+            var results = page == 1 ? firstPage : await GetSearchResultsAsync(BuildSearchUri(rangeQuery, page), cancellationToken);
+            if (results == null)
+            {
+                yield break;
+            }
+
+            _logger.LogDebug("Found {Count} repositories on page {Page} for query {Query}", results.Items.Length, page, string.Join('+', rangeQuery));
+            foreach (var gitHubRepo in results.Items)
+            {
+                yield return gitHubRepo;
+            }
+        }
+    }
+
+    // Splits [from, to] into two disjoint halves and recurses. Ranges never overlap, so results are
+    // unique by construction and need no deduplication. GitHub's earliest repositories date back to
+    // 2007 (e.g. mojombo/grit, created 2007-10-29), so the lower bound must cover them to avoid
+    // dropping repositories that the unsplit query would have returned.
+    private async IAsyncEnumerable<GitHubRepo> SplitAndSearchByDateRangeAsync(string[] query, DateOnly? from, DateOnly? to, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var lower = from ?? new DateOnly(2007, 1, 1);
+        var upper = to ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var mid = DateOnly.FromDayNumber(lower.DayNumber + (upper.DayNumber - lower.DayNumber) / 2);
+
+        await foreach (var gitHubRepo in SearchRepositoriesByDateRangeAsync(query, lower, mid, cancellationToken))
+        {
+            yield return gitHubRepo;
+        }
+
+        await foreach (var gitHubRepo in SearchRepositoriesByDateRangeAsync(query, mid.AddDays(1), upper, cancellationToken))
+        {
+            yield return gitHubRepo;
+        }
+    }
+
+    private static string[] BuildRangeQuery(string[] query, DateOnly? from, DateOnly? to)
+    {
+        return from is { } fromDate && to is { } toDate
+            ? query.Append($"created:{fromDate:yyyy-MM-dd}..{toDate:yyyy-MM-dd}").ToArray()
+            : query;
+    }
+
+    private static Uri BuildSearchUri(string[] rangeQuery, int page)
+    {
+        return BuildUri("/search/repositories", new Dictionary<string, object>()
+        {
+            { "q", string.Join('+', rangeQuery) },
+            { "per_page", ResultsPerPage },
+            { "page", page },
+            { "sort", "updated" }
+        });
     }
 
     private async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
