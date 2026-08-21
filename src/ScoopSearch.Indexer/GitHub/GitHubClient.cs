@@ -14,15 +14,8 @@ internal class GitHubClient : IGitHubClient
     // total_count reflects the real total. Queries that exceed this are split by creation date.
     private const int MaxSearchResults = 1000;
 
-    // The Search API allows only 30 requests per minute and additionally enforces a secondary
-    // (abuse) rate limit that triggers on bursts of requests. We pace search requests just under
-    // the documented limit so long paginated fetches never trip either limit.
-    private static readonly TimeSpan MinSearchInterval = TimeSpan.FromSeconds(2.1);
-
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitHubClient> _logger;
-    private readonly SemaphoreSlim _searchThrottle = new(1, 1);
-    private DateTimeOffset _nextSearchRequestAt = DateTimeOffset.MinValue;
 
     public GitHubClient(IHttpClientFactory httpClientFactory, ILogger<GitHubClient> logger)
     {
@@ -160,29 +153,7 @@ internal class GitHubClient : IGitHubClient
 
     private async Task<GitHubSearchResults?> GetSearchResultsAsync(Uri searchUri, CancellationToken cancellationToken)
     {
-        await ThrottleSearchRequestAsync(cancellationToken);
         return await _httpClientFactory.CreateGitHubClient().GetFromJsonAsync<GitHubSearchResults>(searchUri, cancellationToken);
-    }
-
-    // Ensures a minimum delay between consecutive Search API requests. The client is a singleton and
-    // search requests are issued sequentially, so a single shared gate paces the whole indexing run.
-    private async Task ThrottleSearchRequestAsync(CancellationToken cancellationToken)
-    {
-        await _searchThrottle.WaitAsync(cancellationToken);
-        try
-        {
-            var delay = _nextSearchRequestAt - DateTimeOffset.UtcNow;
-            if (delay > TimeSpan.Zero)
-            {
-                await Task.Delay(delay, cancellationToken);
-            }
-
-            _nextSearchRequestAt = DateTimeOffset.UtcNow + MinSearchInterval;
-        }
-        finally
-        {
-            _searchThrottle.Release();
-        }
     }
 
     private static Uri BuildUri(string path, Dictionary<string, object>? queryString = null)
